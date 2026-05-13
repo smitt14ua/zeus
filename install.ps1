@@ -19,23 +19,32 @@ $Arch = switch ($env:PROCESSOR_ARCHITECTURE) {
 
 $AssetName = "zeus-windows-$Arch.exe"
 
-# ── Fetch latest release tag ──────────────────────────────────────────────────
+# ── Fetch release metadata ────────────────────────────────────────────────────
 Write-Host 'Detecting latest release...'
 
 try {
-    # -UseBasicParsing is not a valid parameter on Invoke-RestMethod (PS5 or PS7);
-    # it only exists on Invoke-WebRequest. JSON parsing here is always basic/native.
-    $Release = Invoke-RestMethod `
-        -Uri "https://api.github.com/repos/$Repo/releases/latest"
+    $Release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest"
 } catch {
     Write-Error "Failed to fetch release info: $_"
     exit 1
 }
 
-$LatestTag   = $Release.tag_name
-$DownloadUrl = "https://github.com/$Repo/releases/download/$LatestTag/$AssetName"
+# Locate the specific asset object — gives us the download URL and GitHub-computed digest
+$Asset = $Release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
+if (-not $Asset) {
+    Write-Error "Asset '$AssetName' not found in release $($Release.tag_name). Check that the release has finished building."
+    exit 1
+}
 
-Write-Host "Installing zeus $LatestTag (windows/$Arch)..."
+$DownloadUrl = $Asset.browser_download_url
+
+# GitHub automatically computes SHA256 digests for all release assets (format: "sha256:<hex>")
+$ExpectedHash = $null
+if ($Asset.digest -and $Asset.digest -like 'sha256:*') {
+    $ExpectedHash = ($Asset.digest -replace '^sha256:', '').ToUpper()
+}
+
+Write-Host "Installing zeus $($Release.tag_name) (windows/$Arch)..."
 
 # ── Create install directory ──────────────────────────────────────────────────
 if (-not (Test-Path $InstallDir)) {
@@ -46,38 +55,33 @@ if (-not (Test-Path $InstallDir)) {
 # ── Download to temp file ─────────────────────────────────────────────────────
 $TempFile = Join-Path $env:TEMP "zeus_install_$(Get-Random).exe"
 
-$ChecksumFile = Join-Path $env:TEMP "zeus_checksum_$(Get-Random).sha256"
-
 try {
     Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
 
-    # Verify download succeeded and file is non-empty
     if (-not (Test-Path $TempFile) -or (Get-Item $TempFile).Length -eq 0) {
-        Write-Error "Downloaded file is empty. Check that the release asset '$AssetName' exists."
+        Write-Error "Downloaded file is empty."
         exit 1
     }
 
-    # Verify SHA256 checksum against the sidecar published in the release
-    Invoke-WebRequest -Uri "$DownloadUrl.sha256" -OutFile $ChecksumFile -UseBasicParsing
-    $ExpectedHash = (Get-Content $ChecksumFile -Raw).Trim().ToUpper()
-    $ActualHash   = (Get-FileHash $TempFile -Algorithm SHA256).Hash.ToUpper()
-
-    if ($ActualHash -ne $ExpectedHash) {
-        Write-Error "Checksum mismatch.`n  expected: $ExpectedHash`n  got:      $ActualHash"
-        exit 1
+    # ── Verify SHA256 digest ──────────────────────────────────────────────────
+    if ($ExpectedHash) {
+        $ActualHash = (Get-FileHash $TempFile -Algorithm SHA256).Hash.ToUpper()
+        if ($ActualHash -ne $ExpectedHash) {
+            Write-Error "Checksum mismatch.`n  expected: $ExpectedHash`n  got:      $ActualHash"
+            exit 1
+        }
+        Write-Host 'Checksum OK.'
+    } else {
+        Write-Warning 'Digest not present in API response — skipping verification.'
     }
-    Write-Host 'Checksum OK.'
 
     $Dest = Join-Path $InstallDir $ExeName
     Move-Item -Path $TempFile -Destination $Dest -Force
     Write-Host "Installed zeus to: $Dest"
 } catch {
-    if (Test-Path $TempFile)      { Remove-Item $TempFile      -Force -ErrorAction SilentlyContinue }
-    if (Test-Path $ChecksumFile)  { Remove-Item $ChecksumFile  -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $TempFile) { Remove-Item $TempFile -Force -ErrorAction SilentlyContinue }
     Write-Error "Installation failed: $_"
     exit 1
-} finally {
-    if (Test-Path $ChecksumFile)  { Remove-Item $ChecksumFile  -Force -ErrorAction SilentlyContinue }
 }
 
 # ── Add install directory to user PATH if missing ─────────────────────────────

@@ -80,14 +80,9 @@ jobs:
       - name: Rename binary for installer
         run: cp ${{ matrix.binary }} ${{ matrix.asset_name }}
 
-      # SHA256 sidecar — verified by install.sh and install.ps1 before executing
-      - name: Generate checksum
-        run: sha256sum ${{ matrix.asset_name }} | awk '{print $1}' > ${{ matrix.asset_name }}.sha256
-
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ steps.names.outputs.archive }}
             ${{ matrix.asset_name }}
-            ${{ matrix.asset_name }}.sha256
