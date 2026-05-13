@@ -212,6 +212,72 @@ func TestS3Driver_MissingBucket(t *testing.T) {
 	}
 }
 
+// TestS3Driver_SubdirIgnoredAtRootPrefix verifies that objects stored under a
+// subdirectory in the bucket are ignored when no prefix is configured.
+// Only flat objects at the prefix level are synced.
+func TestS3Driver_SubdirIgnoredAtRootPrefix(t *testing.T) {
+	client := testClient(t)
+	source := testSource(t)
+	dir := t.TempDir()
+
+	uploadPBO(t, client, source.Prefix, "root_mission.Altis.pbo", "content")
+	uploadPBO(t, client, source.Prefix, "subdir/nested.Stratis.pbo", "content")
+	t.Cleanup(func() {
+		deletePBO(t, client, source.Prefix, "root_mission.Altis.pbo")
+		deletePBO(t, client, source.Prefix, "subdir/nested.Stratis.pbo")
+	})
+
+	drv := S3Driver{}
+	result, err := drv.pull(source, dir, false, false)
+	if err != nil {
+		t.Fatalf("pull: %v", err)
+	}
+	if len(result.Added) != 1 || result.Added[0] != "root_mission.Altis.pbo" {
+		t.Errorf("expected Added=[root_mission.Altis.pbo] only, got %v", result.Added)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "root_mission.Altis.pbo")); err != nil {
+		t.Errorf("root file not created: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "nested.Stratis.pbo")); err == nil {
+		t.Error("subdirectory file must not be downloaded")
+	}
+}
+
+// TestS3Driver_PrefixScopesDownload verifies that only objects directly under
+// the configured prefix are synced, and objects outside it are ignored.
+func TestS3Driver_PrefixScopesDownload(t *testing.T) {
+	client := testClient(t)
+	source := testSource(t)
+	dir := t.TempDir()
+
+	// Files at root level of test prefix.
+	uploadPBO(t, client, source.Prefix, "root.Altis.pbo", "content")
+	// Files in a "submissions" subfolder.
+	uploadPBO(t, client, source.Prefix, "submissions/sub.Stratis.pbo", "content")
+	t.Cleanup(func() {
+		deletePBO(t, client, source.Prefix, "root.Altis.pbo")
+		deletePBO(t, client, source.Prefix, "submissions/sub.Stratis.pbo")
+	})
+
+	// Pull with prefix pointing at submissions/ — only sub.Stratis.pbo expected.
+	subSource := source
+	subSource.Prefix = source.Prefix + "submissions"
+	drv := S3Driver{}
+	result, err := drv.pull(subSource, dir, false, false)
+	if err != nil {
+		t.Fatalf("pull: %v", err)
+	}
+	if len(result.Added) != 1 || result.Added[0] != "sub.Stratis.pbo" {
+		t.Errorf("expected Added=[sub.Stratis.pbo], got %v", result.Added)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "sub.Stratis.pbo")); err != nil {
+		t.Errorf("sub file not created: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "root.Altis.pbo")); err == nil {
+		t.Error("root file must not be downloaded when prefix scopes to submissions/")
+	}
+}
+
 func TestS3Driver_LocalFileMissing(t *testing.T) {
 	client := testClient(t)
 	source := testSource(t)

@@ -18,6 +18,12 @@ import (
 // S3Driver syncs missions from an S3-compatible bucket.
 type S3Driver struct{}
 
+// s3Object pairs a flat local filename with its full S3 key and ETag.
+type s3Object struct {
+	key  string // full S3 object key (used for GetObject)
+	etag string
+}
+
 func (d S3Driver) pull(source arma.MissionSource, targetDir string, dryRun, serverRunning bool) (Result, error) {
 	if source.Bucket == "" {
 		return Result{}, fmt.Errorf("s3 driver requires bucket")
@@ -46,39 +52,37 @@ func (d S3Driver) pull(source arma.MissionSource, targetDir string, dryRun, serv
 	var result Result
 
 	// Files in S3 not in sidecar, or ETag changed, or local file missing → add/update
-	for name, etag := range s3Files {
-		localPath := filepath.Join(targetDir, name)
-		knownETag, known := existingETags[name]
+	for localName, obj := range s3Files {
+		localPath := filepath.Join(targetDir, localName)
+		knownETag, known := existingETags[localName]
 		localExists := fileExists(localPath)
 
 		switch {
 		case !known || !localExists:
-			result.Added = append(result.Added, name)
+			result.Added = append(result.Added, localName)
 			if !dryRun {
 				if err := os.MkdirAll(targetDir, 0755); err != nil {
 					return Result{}, err
 				}
-				key := prefix + name
-				if err := d.download(client, source.Bucket, key, localPath); err != nil {
+				if err := d.download(client, source.Bucket, obj.key, localPath); err != nil {
 					return Result{}, err
 				}
-				existingETags[name] = etag
+				existingETags[localName] = obj.etag
 			}
-		case knownETag != etag:
+		case knownETag != obj.etag:
 			if serverRunning {
-				result.Locked = append(result.Locked, name)
+				result.Locked = append(result.Locked, localName)
 			} else {
-				result.Updated = append(result.Updated, name)
+				result.Updated = append(result.Updated, localName)
 				if !dryRun {
-					key := prefix + name
-					if err := d.download(client, source.Bucket, key, localPath); err != nil {
+					if err := d.download(client, source.Bucket, obj.key, localPath); err != nil {
 						return Result{}, err
 					}
-					existingETags[name] = etag
+					existingETags[localName] = obj.etag
 				}
 			}
 		default:
-			result.Skipped = append(result.Skipped, name)
+			result.Skipped = append(result.Skipped, localName)
 		}
 	}
 
@@ -143,8 +147,8 @@ func (d S3Driver) newClient(source arma.MissionSource) (*s3.Client, error) {
 	return s3.NewFromConfig(cfg, s3Opts...), nil
 }
 
-func (d S3Driver) listPBOs(client *s3.Client, bucket, prefix string) (map[string]string, error) {
-	result := make(map[string]string)
+func (d S3Driver) listPBOs(client *s3.Client, bucket, prefix string) (map[string]s3Object, error) {
+	result := make(map[string]s3Object)
 	paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
@@ -159,9 +163,13 @@ func (d S3Driver) listPBOs(client *s3.Client, bucket, prefix string) (map[string
 			if !strings.HasSuffix(key, ".pbo") {
 				continue
 			}
-			name := strings.TrimPrefix(key, prefix)
+			localName := strings.TrimPrefix(key, prefix)
+			// Skip objects in subdirectories — only the flat level at prefix is synced.
+			if strings.Contains(localName, "/") {
+				continue
+			}
 			etag := strings.Trim(aws.ToString(obj.ETag), `"`)
-			result[name] = etag
+			result[localName] = s3Object{key: key, etag: etag}
 		}
 	}
 	return result, nil

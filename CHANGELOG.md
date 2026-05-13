@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-13
+
+### Fixed
+- S3 driver now ignores `.pbo` objects stored in subdirectories when no prefix is set — only flat objects at the configured prefix level are downloaded
+- S3 driver uses `ListObjectsV2` prefix scoping correctly: setting `prefix: submissions` downloads only files directly under `submissions/`, root-level files are excluded
+
+### Added
+- Integration tests: `TestS3Driver_SubdirIgnoredAtRootPrefix` and `TestS3Driver_PrefixScopesDownload` covering the subdirectory filtering and prefix scoping behaviour
+
 ## [0.1.1] - 2026-05-13
 
 ### Added
@@ -31,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/smitt14ua/zeus/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/smitt14ua/zeus/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smitt14ua/zeus/releases/tag/v0.1.0
