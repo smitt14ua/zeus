@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-13
+
+### Fixed
+- Removed automatic `-bePath` injection from server launch — Arma 3 sets the BattlEye path correctly on its own; the forced override was causing startup problems
+- `be_path` can still be set manually in the profile's `params:` section if a non-default path is needed
+
+### Docs
+- Added `CLAUDE.md` (Claude Code session context), `AGENTS.md` (other AI agents), and `CONTRIBUTING.md` (build, test, PR process)
+- Updated S3 prefix scoping documentation in `README.md` and `docs/ai/common_gotchas.md`
+- Added `internal/missions` to architecture rules package graph
+
 ## [0.1.2] - 2026-05-13
 
 ### Fixed
@@ -40,7 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/smitt14ua/zeus/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/smitt14ua/zeus/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/smitt14ua/zeus/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smitt14ua/zeus/releases/tag/v0.1.0

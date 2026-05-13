@@ -53,11 +53,6 @@ func (r Runner) prepareParams(p profile.Profile) (profile.Profile, error) {
 	name := p.Name
 	p.Params.Name = &name
 
-	if p.Params.BePath == nil {
-		bePath := filepath.Join(zeusDir, profile.BattleyeDirName())
-		p.Params.BePath = &bePath
-	}
-
 	return p, nil
 }
 
