@@ -2,17 +2,19 @@ package cmd
 
 import (
 	"os"
+	"runtime/debug"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 // version is set at build time via -ldflags "-X github.com/smitt14ua/zeus/cmd.version=X.Y.Z"
+// Falls back to the module version embedded by go install.
 var version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "zeus",
-	Short:   "Arma 3 dedicated server manager",
-	Version: version,
+	Use:   "zeus",
+	Short: "Arma 3 dedicated server manager",
 	Long: `zeus manages Arma 3 dedicated server profiles.
 
 A profile bundles server configuration, startup parameters, and mod lists
@@ -35,5 +37,12 @@ func Execute() {
 }
 
 func init() {
+	if version == "dev" {
+		if info, ok := debug.ReadBuildInfo(); ok &&
+			info.Main.Version != "" && info.Main.Version != "(devel)" {
+			version = strings.TrimPrefix(info.Main.Version, "v")
+		}
+	}
+	rootCmd.Version = version
 	rootCmd.AddCommand(missionsCmd)
 }
