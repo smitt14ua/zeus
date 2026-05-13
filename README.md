@@ -1,5 +1,9 @@
 # ZEUS
 
+[![codecov](https://codecov.io/gh/smitt14ua/zeus/graph/badge.svg)](https://codecov.io/gh/smitt14ua/zeus)
+[![Downloads](https://img.shields.io/github/downloads/smitt14ua/zeus/total?label=downloads)](https://github.com/smitt14ua/zeus/releases)
+[![Latest release](https://img.shields.io/github/v/release/smitt14ua/zeus)](https://github.com/smitt14ua/zeus/releases/latest)
+
 CLI tool for managing Arma 3 dedicated server profiles on Windows and Linux.
 
 A **profile** bundles your server config, startup parameters, mod list, and RCon settings into a single file (YAML, TOML, or JSON). ZEUS generates the required `.cfg` files, launches the server process, and tracks running instances.
