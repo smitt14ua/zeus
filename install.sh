@@ -87,6 +87,28 @@ if [ ! -s "$TMP_FILE" ]; then
   exit 1
 fi
 
+# ── Checksum verification ────────────────────────────────────────────────────
+TMP_SUM="$(mktemp)"
+trap 'rm -f "$TMP_FILE" "$TMP_SUM"' EXIT
+
+_download "${DOWNLOAD_URL}.sha256" "$TMP_SUM"
+EXPECTED="$(cat "$TMP_SUM")"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  ACTUAL="$(sha256sum "$TMP_FILE" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+  ACTUAL="$(shasum -a 256 "$TMP_FILE" | awk '{print $1}')"
+else
+  printf 'Warning: sha256sum/shasum not found — skipping checksum verification.\n' >&2
+  ACTUAL="$EXPECTED"
+fi
+
+if [ "$ACTUAL" != "$EXPECTED" ]; then
+  printf 'Error: checksum mismatch.\n  expected: %s\n  got:      %s\n' "$EXPECTED" "$ACTUAL" >&2
+  exit 1
+fi
+printf 'Checksum OK.\n'
+
 chmod +x "$TMP_FILE"
 
 # ── Install ──────────────────────────────────────────────────────────────────

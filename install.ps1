@@ -46,6 +46,8 @@ if (-not (Test-Path $InstallDir)) {
 # ── Download to temp file ─────────────────────────────────────────────────────
 $TempFile = Join-Path $env:TEMP "zeus_install_$(Get-Random).exe"
 
+$ChecksumFile = Join-Path $env:TEMP "zeus_checksum_$(Get-Random).sha256"
+
 try {
     Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
 
@@ -55,13 +57,27 @@ try {
         exit 1
     }
 
+    # Verify SHA256 checksum against the sidecar published in the release
+    Invoke-WebRequest -Uri "$DownloadUrl.sha256" -OutFile $ChecksumFile -UseBasicParsing
+    $ExpectedHash = (Get-Content $ChecksumFile -Raw).Trim().ToUpper()
+    $ActualHash   = (Get-FileHash $TempFile -Algorithm SHA256).Hash.ToUpper()
+
+    if ($ActualHash -ne $ExpectedHash) {
+        Write-Error "Checksum mismatch.`n  expected: $ExpectedHash`n  got:      $ActualHash"
+        exit 1
+    }
+    Write-Host 'Checksum OK.'
+
     $Dest = Join-Path $InstallDir $ExeName
     Move-Item -Path $TempFile -Destination $Dest -Force
     Write-Host "Installed zeus to: $Dest"
 } catch {
-    if (Test-Path $TempFile) { Remove-Item $TempFile -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $TempFile)      { Remove-Item $TempFile      -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $ChecksumFile)  { Remove-Item $ChecksumFile  -Force -ErrorAction SilentlyContinue }
     Write-Error "Installation failed: $_"
     exit 1
+} finally {
+    if (Test-Path $ChecksumFile)  { Remove-Item $ChecksumFile  -Force -ErrorAction SilentlyContinue }
 }
 
 # ── Add install directory to user PATH if missing ─────────────────────────────
