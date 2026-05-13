@@ -6,13 +6,50 @@ A **profile** bundles your server config, startup parameters, mod list, and RCon
 
 ## Installation
 
-```bash
+### Linux / macOS
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/smitt14ua/zeus/main/install.sh | sh
+```
+
+Installs to `/usr/local/bin/zeus`. Uses `sudo` automatically if needed.
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/smitt14ua/zeus/main/install.ps1 | iex
+```
+
+Installs to `%LOCALAPPDATA%\Programs\Zeus\zeus.exe` and adds the directory to your user PATH.
+
+### Manual installation
+
+Download the binary for your platform from the [latest release](https://github.com/smitt14ua/zeus/releases/latest):
+
+| Platform        | Asset                   |
+|-----------------|-------------------------|
+| Linux x86_64    | `zeus-linux-amd64`      |
+| Linux arm64     | `zeus-linux-arm64`      |
+| macOS x86_64    | `zeus-darwin-amd64`     |
+| macOS arm64     | `zeus-darwin-arm64`     |
+| Windows x86_64  | `zeus-windows-amd64.exe`|
+
+```sh
+# Linux example
+curl -fsSL -o zeus https://github.com/smitt14ua/zeus/releases/latest/download/zeus-linux-amd64
+chmod +x zeus
+sudo mv zeus /usr/local/bin/
+```
+
+### Install with Go
+
+```sh
 go install github.com/smitt14ua/zeus@latest
 ```
 
-Build from source:
+### Build from source
 
-```bash
+```sh
 git clone https://github.com/smitt14ua/zeus
 cd zeus
 go build -o zeus .

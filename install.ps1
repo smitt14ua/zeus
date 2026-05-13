@@ -1,0 +1,81 @@
+# install.ps1 — installer for zeus on Windows
+# Usage: irm https://raw.githubusercontent.com/smitt14ua/zeus/main/install.ps1 | iex
+#Requires -Version 5
+$ErrorActionPreference = 'Stop'
+
+$Repo       = 'smitt14ua/zeus'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\Zeus'
+$ExeName    = 'zeus.exe'
+
+# ── Architecture detection ────────────────────────────────────────────────────
+$Arch = switch ($env:PROCESSOR_ARCHITECTURE) {
+    'AMD64' { 'amd64' }
+    'ARM64' { 'arm64' }
+    default {
+        Write-Error "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE"
+        exit 1
+    }
+}
+
+$AssetName = "zeus-windows-$Arch.exe"
+
+# ── Fetch latest release tag ──────────────────────────────────────────────────
+Write-Host 'Detecting latest release...'
+
+try {
+    $Release = Invoke-RestMethod `
+        -Uri "https://api.github.com/repos/$Repo/releases/latest" `
+        -UseBasicParsing
+} catch {
+    Write-Error "Failed to fetch release info: $_"
+    exit 1
+}
+
+$LatestTag   = $Release.tag_name
+$DownloadUrl = "https://github.com/$Repo/releases/download/$LatestTag/$AssetName"
+
+Write-Host "Installing zeus $LatestTag (windows/$Arch)..."
+
+# ── Create install directory ──────────────────────────────────────────────────
+if (-not (Test-Path $InstallDir)) {
+    New-Item -ItemType Directory -Path $InstallDir | Out-Null
+    Write-Host "Created directory: $InstallDir"
+}
+
+# ── Download to temp file ─────────────────────────────────────────────────────
+$TempFile = Join-Path $env:TEMP "zeus_install_$(Get-Random).exe"
+
+try {
+    Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
+
+    # Verify download succeeded and file is non-empty
+    if (-not (Test-Path $TempFile) -or (Get-Item $TempFile).Length -eq 0) {
+        Write-Error "Downloaded file is empty. Check that the release asset '$AssetName' exists."
+        exit 1
+    }
+
+    $Dest = Join-Path $InstallDir $ExeName
+    Move-Item -Path $TempFile -Destination $Dest -Force
+    Write-Host "Installed zeus to: $Dest"
+} catch {
+    if (Test-Path $TempFile) { Remove-Item $TempFile -Force -ErrorAction SilentlyContinue }
+    Write-Error "Installation failed: $_"
+    exit 1
+}
+
+# ── Add install directory to user PATH if missing ─────────────────────────────
+$UserPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+if ($null -eq $UserPath) { $UserPath = '' }
+
+if ($UserPath -notlike "*$InstallDir*") {
+    $NewPath = ($UserPath.TrimEnd(';') + ";$InstallDir").TrimStart(';')
+    [Environment]::SetEnvironmentVariable('PATH', $NewPath, 'User')
+    Write-Host "Added $InstallDir to your user PATH."
+    Write-Host 'Restart your terminal for the PATH change to take effect.'
+} else {
+    Write-Host "$InstallDir is already in your PATH."
+}
+
+Write-Host ''
+Write-Host 'zeus installed successfully.'
+Write-Host 'Run "zeus --version" to verify (restart terminal first if PATH was just updated).'

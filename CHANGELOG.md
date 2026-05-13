@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-05-13
+
+### Added
+- `install.sh` — POSIX installer for Linux and macOS (x86_64 and arm64); installs to `/usr/local/bin`
+- `install.ps1` — PowerShell installer for Windows; installs to `%LOCALAPPDATA%\Programs\Zeus` and adds it to user PATH
+- Release workflow now builds and publishes binaries for all five platforms: `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`, `windows/amd64`
+- Raw installer-friendly binary assets (`zeus-linux-amd64`, `zeus-darwin-arm64`, etc.) published alongside the existing versioned archives
+
 ## [0.1.5] - 2026-05-13
 
 ### Added
@@ -65,7 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/smitt14ua/zeus/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/smitt14ua/zeus/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/smitt14ua/zeus/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/smitt14ua/zeus/compare/v0.1.2...v0.1.3

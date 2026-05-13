@@ -20,38 +20,69 @@ jobs:
           - goos: linux
             goarch: amd64
             binary: zeus
+            asset_name: zeus-linux-amd64
+            archive_ext: tar.gz
+          - goos: linux
+            goarch: arm64
+            binary: zeus
+            asset_name: zeus-linux-arm64
+            archive_ext: tar.gz
+          - goos: darwin
+            goarch: amd64
+            binary: zeus
+            asset_name: zeus-darwin-amd64
+            archive_ext: tar.gz
+          - goos: darwin
+            goarch: arm64
+            binary: zeus
+            asset_name: zeus-darwin-arm64
             archive_ext: tar.gz
           - goos: windows
             goarch: amd64
             binary: zeus.exe
+            asset_name: zeus-windows-amd64.exe
             archive_ext: zip
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
       - name: Set names
         id: names
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "archive=zeus_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.${{ matrix.archive_ext }}" >> $GITHUB_OUTPUT
+
       - name: Build
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
+          GOOS:        ${{ matrix.goos }}
+          GOARCH:      ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
           go build \
             -ldflags "-X github.com/smitt14ua/zeus/cmd.version=${{ steps.names.outputs.version }}" \
             -o ${{ matrix.binary }} .
-      - name: Pack
+
+      # Archive used by `zeus update` (go-selfupdate expects versioned archives)
+      - name: Pack archive
         run: |
           if [ "${{ matrix.archive_ext }}" = "tar.gz" ]; then
             tar czf ${{ steps.names.outputs.archive }} ${{ matrix.binary }}
           else
             zip ${{ steps.names.outputs.archive }} ${{ matrix.binary }}
           fi
-      - name: Upload to release
+
+      # Raw binary used by install.sh / install.ps1
+      - name: Rename binary for installer
+        run: cp ${{ matrix.binary }} ${{ matrix.asset_name }}
+
+      - name: Upload assets to release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.names.outputs.archive }}
+          files: |
+            ${{ steps.names.outputs.archive }}
+            ${{ matrix.asset_name }}
