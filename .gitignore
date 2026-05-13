@@ -1,0 +1,18 @@
+# Binaries
+zeus
+zeus.exe
+*.exe
+
+# Go
+*.test
+*.out
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# AI
+.claude/settings.local.json
