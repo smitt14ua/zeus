@@ -74,7 +74,34 @@ chore: bump dependency
 Keep the subject line under 72 characters. Add a body when the motivation is
 non-obvious.
 
+## Cross-Platform Builds
+
+All five targets are built in CI via `GOOS`/`GOARCH` with `CGO_ENABLED=0`.
+To reproduce locally:
+
+```bash
+GOOS=linux   GOARCH=arm64 CGO_ENABLED=0 go build -o zeus-linux-arm64 .
+GOOS=darwin  GOARCH=arm64 CGO_ENABLED=0 go build -o zeus-darwin-arm64 .
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o zeus-windows-amd64.exe .
+```
+
+## Testing the Installers
+
+**install.sh** (requires a release with raw binary assets):
+```bash
+# Dry-run against the real GitHub release
+sh install.sh
+```
+
+**install.ps1**:
+```powershell
+# From repo root
+.\install.ps1
+```
+
 ## Pull Requests
+
+A PR template will guide you. Short version:
 
 1. Branch from `main`
 2. Run `go test ./...` (unit) and `go test -tags=integration ./...` if touching `internal/missions`

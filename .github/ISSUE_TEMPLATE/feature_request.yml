@@ -1,0 +1,51 @@
+name: Feature Request
+description: Suggest an improvement or new capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe what you'd like zeus to do that it doesn't do today.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What are you trying to do? What's currently painful or missing?
+      placeholder: "When I manage multiple servers I have to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? Commands, flags, config keys — be as specific as you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about and why you ruled them out.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Profile management
+        - Server launch / stop
+        - Mission sync (missions pull)
+        - Installer / update
+        - Configuration format
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, related issues, example configs, screenshots — anything that helps.

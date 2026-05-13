@@ -57,6 +57,18 @@ go test -tags=integration ./...        # + S3 integration (MinIO at localhost:90
 
 Integration tests require MinIO: bucket `mpmissions`, credentials `minioadmin`/`minioadmin`.
 
+## Release Artifacts
+
+Each tag produces two asset types per platform:
+
+| Type | Example | Used by |
+|------|---------|---------|
+| Versioned archive | `zeus_0.1.6_linux_amd64.tar.gz` | `zeus update` (go-selfupdate) |
+| Raw binary | `zeus-linux-amd64` | `install.sh` / `install.ps1` |
+
+Platforms: `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`, `windows/amd64`.
+All built from `ubuntu-latest` with `CGO_ENABLED=0`.
+
 ## Docs Index
 
 - [`docs/ai/`](docs/ai/) — architecture, conventions, gotchas (start here)
@@ -65,3 +77,5 @@ Integration tests require MinIO: bucket `mpmissions`, credentials `minioadmin`/`
 - [`docs/glossary.md`](docs/glossary.md) — domain terms and abbreviations
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — build, test, PR process
 - [`CHANGELOG.md`](CHANGELOG.md) — release history
+- [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) — bug + feature request forms
+- [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) — PR checklist
