@@ -104,3 +104,31 @@ func TestProfileRepository_DeleteMissing(t *testing.T) {
 		t.Fatal("expected error deleting non-existent profile")
 	}
 }
+
+func TestProfileRepository_Get(t *testing.T) {
+	r := newRepo(t)
+
+	want := profile.Profile{Name: "gamma", InstallDir: "/opt/arma3"}
+	if err := r.Save(want); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	got, err := r.Get("gamma")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Name != want.Name {
+		t.Errorf("Name: got %q want %q", got.Name, want.Name)
+	}
+	if got.InstallDir != want.InstallDir {
+		t.Errorf("InstallDir: got %q want %q", got.InstallDir, want.InstallDir)
+	}
+}
+
+func TestProfileRepository_Get_NotFound(t *testing.T) {
+	r := newRepo(t)
+	_, err := r.Get("ghost")
+	if err == nil {
+		t.Fatal("expected error for missing profile")
+	}
+}

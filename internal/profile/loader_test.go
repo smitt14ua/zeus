@@ -97,6 +97,68 @@ func TestProfileLoader_FromFile(t *testing.T) {
 	})
 }
 
+const testProfileYAML = `
+name: my-server
+install_dir: /opt/arma3
+params:
+  port: 2302
+  server: true
+config:
+  hostname: Test Server
+  max_players: 32
+  password_admin: secret
+basic:
+  language: English
+  max_msg_send: 128
+rcon:
+  password: abc123def456abc1
+  port: 2301
+`
+
+func TestProfileLoader_FromFile_YAML(t *testing.T) {
+	loader := ProfileLoader{}
+
+	t.Run("valid_yaml_file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "profile.yaml")
+		require.NoError(t, os.WriteFile(path, []byte(testProfileYAML), 0600))
+
+		p, err := loader.FromFile(path)
+		require.NoError(t, err)
+		assert.Equal(t, "my-server", p.Name)
+		assert.Equal(t, "/opt/arma3", p.InstallDir)
+		assert.Equal(t, uint16(2302), *p.Params.Port)
+		assert.Equal(t, true, *p.Params.Server)
+		require.NotNil(t, p.Config.Hostname)
+		assert.Equal(t, "Test Server", *p.Config.Hostname)
+		require.NotNil(t, p.Config.MaxPlayers)
+		assert.Equal(t, uint16(32), *p.Config.MaxPlayers)
+		require.NotNil(t, p.Config.PasswordAdmin)
+		assert.Equal(t, "secret", *p.Config.PasswordAdmin)
+		require.NotNil(t, p.Basic.Language)
+		assert.Equal(t, "English", *p.Basic.Language)
+		require.NotNil(t, p.Basic.MaxMsgSend)
+		assert.Equal(t, uint16(128), *p.Basic.MaxMsgSend)
+		assert.Equal(t, "abc123def456abc1", p.RCon.Password)
+		assert.Equal(t, uint16(2301), p.RCon.Port)
+	})
+
+	t.Run("invalid_yaml_returns_error", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "bad.yaml")
+		require.NoError(t, os.WriteFile(path, []byte(":\tinvalid: [yaml"), 0600))
+		_, err := loader.FromFile(path)
+		assert.Error(t, err)
+	})
+
+	t.Run("empty_yaml_returns_zero_profile", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "empty.yaml")
+		require.NoError(t, os.WriteFile(path, []byte(""), 0600))
+		p, err := loader.FromFile(path)
+		require.NoError(t, err)
+		assert.Equal(t, "", p.Name)
+		assert.Nil(t, p.Config.MaxPlayers)
+	})
+}
+
 const testProfileTOML = `
 name = "my-server"
 install_dir = "/opt/arma3"
