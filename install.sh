@@ -36,7 +36,8 @@ _download() {
   url="$1"
   dest="$2"
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$dest" "$url"
+    # --proto '=https' prevents redirect to non-HTTPS; --tlsv1.2 prevents downgrade
+    curl -fsSL --proto '=https' --tlsv1.2 -o "$dest" "$url"
   elif command -v wget >/dev/null 2>&1; then
     wget -qO "$dest" "$url"
   else
@@ -48,9 +49,12 @@ _download() {
 _fetch_text() {
   url="$1"
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$url"
-  else
+    curl -fsSL --proto '=https' --tlsv1.2 "$url"
+  elif command -v wget >/dev/null 2>&1; then
     wget -qO- "$url"
+  else
+    printf 'Error: curl or wget is required.\n' >&2
+    exit 1
   fi
 }
 

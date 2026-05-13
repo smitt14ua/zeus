@@ -23,9 +23,10 @@ $AssetName = "zeus-windows-$Arch.exe"
 Write-Host 'Detecting latest release...'
 
 try {
+    # -UseBasicParsing is not a valid parameter on Invoke-RestMethod (PS5 or PS7);
+    # it only exists on Invoke-WebRequest. JSON parsing here is always basic/native.
     $Release = Invoke-RestMethod `
-        -Uri "https://api.github.com/repos/$Repo/releases/latest" `
-        -UseBasicParsing
+        -Uri "https://api.github.com/repos/$Repo/releases/latest"
 } catch {
     Write-Error "Failed to fetch release info: $_"
     exit 1
@@ -67,8 +68,11 @@ try {
 $UserPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
 if ($null -eq $UserPath) { $UserPath = '' }
 
-if ($UserPath -notlike "*$InstallDir*") {
-    $NewPath = ($UserPath.TrimEnd(';') + ";$InstallDir").TrimStart(';')
+# Split on ';' for exact entry comparison — avoids wildcard mismatch if path
+# contains '[' or ']' (e.g. a username with brackets in LOCALAPPDATA).
+$PathEntries = $UserPath -split ';' | Where-Object { $_ -ne '' }
+if ($PathEntries -notcontains $InstallDir) {
+    $NewPath = ($PathEntries + $InstallDir) -join ';'
     [Environment]::SetEnvironmentVariable('PATH', $NewPath, 'User')
     Write-Host "Added $InstallDir to your user PATH."
     Write-Host 'Restart your terminal for the PATH change to take effect.'
