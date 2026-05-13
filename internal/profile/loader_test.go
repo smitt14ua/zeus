@@ -26,6 +26,10 @@ const testProfileJSON = `{
   "basic": {
     "language": "English",
     "maxMsgSend": 128
+  },
+  "rcon": {
+    "password": "abc123def456abc1",
+    "port": 2301
   }
 }`
 
@@ -49,6 +53,8 @@ func TestProfileLoader_FromBytes(t *testing.T) {
 		assert.Equal(t, "English", *p.Basic.Language)
 		require.NotNil(t, p.Basic.MaxMsgSend)
 		assert.Equal(t, uint16(128), *p.Basic.MaxMsgSend)
+		assert.Equal(t, "abc123def456abc1", p.RCon.Password)
+		assert.Equal(t, uint16(2301), p.RCon.Port)
 	})
 
 	t.Run("invalid_json", func(t *testing.T) {
@@ -81,6 +87,8 @@ func TestProfileLoader_FromFile(t *testing.T) {
 		assert.Equal(t, "Test Server", *p.Config.Hostname)
 		require.NotNil(t, p.Basic.Language)
 		assert.Equal(t, "English", *p.Basic.Language)
+		assert.Equal(t, "abc123def456abc1", p.RCon.Password)
+		assert.Equal(t, uint16(2301), p.RCon.Port)
 	})
 
 	t.Run("missing_file", func(t *testing.T) {
@@ -105,6 +113,10 @@ password_admin = "secret"
 [basic]
 language = "English"
 max_msg_send = 128
+
+[rcon]
+password = "abc123def456abc1"
+port = 2301
 `
 
 func TestProfileLoader_FromFile_TOML(t *testing.T) {
@@ -130,6 +142,8 @@ func TestProfileLoader_FromFile_TOML(t *testing.T) {
 		assert.Equal(t, "English", *p.Basic.Language)
 		require.NotNil(t, p.Basic.MaxMsgSend)
 		assert.Equal(t, uint16(128), *p.Basic.MaxMsgSend)
+		assert.Equal(t, "abc123def456abc1", p.RCon.Password)
+		assert.Equal(t, uint16(2301), p.RCon.Port)
 	})
 
 	t.Run("toml_empty_returns_zero_profile", func(t *testing.T) {

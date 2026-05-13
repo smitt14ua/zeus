@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.1] - 2026-05-13
+
+### Added
+- Tests for `new` / `profile new` command verifying TOML, JSON, and YAML output each contain the `[rcon]` section with password and port
+
+### Fixed
+- Loader test fixtures for TOML and JSON now include an `rcon` section, covering the round-trip parse path that was previously untested
+
+### Docs
+- Note that the `-mpmissions` Arma 3 startup parameter bug is fixed as of server revision 153745
+
+## [0.1.0] - 2026-05-13
+
+### Added
+- Initial release: Arma 3 server manager CLI (`zeus`)
+- `profile new` / `new` — generate profile templates in YAML, TOML, or JSON
+- `profile add` — add a profile from file or stdin
+- `profile run` / `start` — launch an Arma 3 dedicated server
+- `stop` — stop a running server by profile name
+- `missions` / `add` — mission source management
+- BattlEye config generation (`BEServer.cfg`, `BEServer_x64.cfg`)
+- RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
+- TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
+
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/smitt14ua/zeus/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/smitt14ua/zeus/releases/tag/v0.1.0
