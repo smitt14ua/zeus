@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-05-13
+
+### CI / Security
+
+- Branch protection on `main`: force pushes and deletion blocked; `test` and `analyze` (CodeQL) required to pass on PRs
+- Dependabot enabled for Go modules and GitHub Actions (weekly, Monday)
+- CodeQL static analysis on every push/PR to `main` and weekly schedule
+- Secret scanning and push protection enabled
+- All GitHub Actions updated to Node 24 runtime: `actions/checkout@v6`, `actions/setup-go@v6`, `github/codeql-action@v4`, `softprops/action-gh-release@v3`
+- Added issue templates (bug report, feature request) and PR template
+- Added `SECURITY.md` with private vulnerability reporting instructions
+- GitHub Discussions enabled
+
 ## [0.1.6] - 2026-05-13
 
 ### Added
@@ -73,7 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/smitt14ua/zeus/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/smitt14ua/zeus/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/smitt14ua/zeus/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/smitt14ua/zeus/compare/v0.1.3...v0.1.4
