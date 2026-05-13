@@ -4,7 +4,7 @@
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| Go | 1.22+ | see `go.mod` for exact minimum |
+| Go | 1.26+ | see `go.mod` for exact minimum |
 | MinIO | any | integration tests only — `localhost:9000` |
 
 ## Build

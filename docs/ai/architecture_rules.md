@@ -45,7 +45,7 @@ internal/arma
 |---------|------|
 | `internal/arma` | Arma 3 config types, dumper, startup params, mod scanning, custom scalar types |
 | `internal/profile` | Profile struct, YAML/TOML loading (with default pre-population), config file writing |
-| `internal/storage` | Profile persistence (YAML files in `~/.zeus/profiles/`; reads both `.yaml` and `.toml`) |
+| `internal/storage` | Profile persistence (JSON files in `~/.zeus/profiles/`; reads `.json`, `.yaml`, `.toml`) |
 | `internal/process` | PID file management, process existence checks, server launch |
 | `internal/missions` | `.pbo` sync drivers (path copy/symlink, S3); ETag sidecar; `Puller` dispatcher |
 | `cmd/` | CLI surface, user prompts, flag parsing |
@@ -54,13 +54,13 @@ internal/arma
 
 ```
 profile add (cmd)
-  → ProfileLoader.FromFile         — YAML or TOML → Profile (with defaults; format detected by extension)
+  → ProfileLoader.FromFile         — YAML, TOML, or JSON → Profile (with defaults; format detected by extension)
   → processProfileMods             — interactive mod/key management
-  → ProfileRepository.Save         — write profile.yaml to ~/.zeus/profiles/ (always YAML)
+  → ProfileRepository.Save         — write profile.json to ~/.zeus/profiles/ (always JSON)
   → ProfileWriter.Write            — write server.cfg + basic.cfg to install_dir
 
 profile start (cmd)
-  → ProfileRepository.Get          — load profile.yaml or .toml via loader.FromFile (no defaults)
+  → ProfileRepository.Get          — load profile.json (or .yaml/.toml) via loader.FromFile (no defaults)
   → Runner.prepareParams           — inject managed paths into Params
   → Runner.Run                     — exec.Start(arma3server_x64...)
   → creates ~/.zeus/running/<name>.pid (written by Arma 3 via -pid flag)
@@ -76,7 +76,7 @@ profile stop (cmd)
 The generated `.cfg` files in `<install_dir>/.zeus/<name>/configs/` are created when
 a profile is added or updated, then read by Arma 3 at start time.
 
-If the profile YAML is modified externally (e.g. manually), `profile add` must be
+If the profile JSON is modified externally (e.g. manually), `profile add` must be
 re-run to regenerate the `.cfg` files.
 
 ## Defaults Pre-population Invariant

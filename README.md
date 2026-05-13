@@ -131,8 +131,10 @@ zeus add server.yaml
 zeus add server.toml
 zeus add server.json
 zeus add server.yaml --name staging
-cat server.yaml | zeus add
+cat server.json | zeus add
 ```
+
+> **Note:** Stdin input must be JSON. File input auto-detects format from the `.yaml`, `.toml`, or `.json` extension.
 
 | Flag | Short | Description |
 |------|-------|-------------|
@@ -251,7 +253,7 @@ Set `prefix: submissions` to scope the pull to the `submissions/` folder exclusi
 
 | Path | Contents |
 |------|----------|
-| `~/.zeus/profiles/<name>.yaml` | Saved profile (always stored as YAML) |
+| `~/.zeus/profiles/<name>.json` | Saved profile |
 | `~/.zeus/running/<name>.pid` | PID file while server is running |
 | `<install_dir>/.zeus/<name>/configs/` | Generated `server.cfg` and `basic.cfg` |
 | `<install_dir>/.zeus/<name>/mpmissions/` | Mission `.pbo` files |

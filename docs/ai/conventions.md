@@ -95,7 +95,7 @@ yaml.Unmarshal(data, &p)   // or toml.Decode for TOML
 
 | Path | Description |
 |------|-------------|
-| `~/.zeus/profiles/<name>.yaml` | Saved profile |
+| `~/.zeus/profiles/<name>.json` | Saved profile |
 | `~/.zeus/running/<name>.pid` | PID file (absolute, OS home dir) |
 | `<install_dir>/.zeus/<name>/configs/server.cfg` | Generated server config |
 | `<install_dir>/.zeus/<name>/configs/basic.cfg` | Generated basic config |

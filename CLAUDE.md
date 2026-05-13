@@ -19,7 +19,7 @@ Read these before touching code:
 |---------|---------------|
 | `internal/arma` | Arma 3 config types, dumper, startup params, mod scanning. **No internal deps.** |
 | `internal/profile` | Profile struct, YAML/TOML/JSON load, config file write |
-| `internal/storage` | Profile persistence — `~/.zeus/profiles/*.yaml` |
+| `internal/storage` | Profile persistence — `~/.zeus/profiles/*.json` |
 | `internal/process` | PID tracking, process existence, server launch |
 | `internal/missions` | `.pbo` sync — path (copy/symlink) and S3 drivers |
 | `cmd/` | CLI surface only — no business logic here |
@@ -30,7 +30,7 @@ Read these before touching code:
   generated when a profile is registered, then read by Arma 3 at launch.
 - **`ProfileRepository.Get` does not pre-populate defaults.** Profiles on disk already
   carry all values. Do not add default injection there.
-- **Profiles always stored as `.yaml`** regardless of input format (TOML/JSON inputs
+- **Profiles always stored as `.json`** regardless of input format (YAML/TOML inputs
   are converted on save).
 - **Relative paths in Runner are intentional.** `cmd.Dir = install_dir`, so Arma 3
   resolves `.zeus/<name>/configs/server.cfg` relative to its installation directory.

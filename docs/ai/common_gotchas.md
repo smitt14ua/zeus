@@ -63,9 +63,9 @@ carry the values they need.
 
 ## 4. Pipe vs Terminal stdin Conflict
 
-**Trap:** Using `bufio.Scanner(os.Stdin)` when stdin carries piped YAML.
+**Trap:** Using `bufio.Scanner(os.Stdin)` when stdin carries piped JSON.
 
-`profile add` reads YAML from stdin when piped. If interactive prompts also try to
+`profile add` reads JSON from stdin when piped. If interactive prompts also try to
 read from `os.Stdin`, the pipe content is consumed by the scanner instead of the user's
 keystrokes, producing garbled output and empty answers.
 
@@ -198,15 +198,13 @@ compatibility if a TOML file is machine-generated.
 
 ---
 
-## 14. TOML Input Is Converted to YAML on Save
+## 14. Non-JSON Input Is Converted to JSON on Save
 
-**Trap:** Expecting a TOML-sourced profile to be stored as `.toml`.
+**Trap:** Expecting a YAML- or TOML-sourced profile to be stored in its original format.
 
-`ProfileRepository.Save` always writes `.yaml`, regardless of input format. A profile
-added from `server.toml` is stored as `~/.zeus/profiles/server.yaml`. The original TOML
-file is not kept. `profile info --format toml` re-serializes from the stored YAML.
-
----
+`ProfileRepository.Save` always writes `.json`, regardless of input format. A profile
+added from `server.yaml` or `server.toml` is stored as `~/.zeus/profiles/<name>.json`.
+The original file is not kept. `profile info --toml` re-serializes from the stored JSON.
 
 ---
 
