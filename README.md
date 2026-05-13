@@ -126,6 +126,8 @@ cat server.yaml | zeus add
 |------|-------|-------------|
 | `--dry-run` | `-n` | Show what would change without making changes |
 
+> **Note:** ZEUS sets the mpmissions directory via the `-mpmissions` startup parameter. This parameter had a bug in Arma 3 that was fixed in revision 153745 — on older builds it may not work correctly. See [feedback.bistudio.com/T199168](https://feedback.bistudio.com/T199168) for details.
+
 ## Profile format
 
 Profiles are YAML, TOML, or JSON. Generate a template with `zeus new <name> --yaml`.
