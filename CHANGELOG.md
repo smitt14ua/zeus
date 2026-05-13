@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-05-13
+
+### Added
+- `zeus update` command — checks GitHub releases and self-updates the binary in place; dev builds are rejected with a helpful install message
+
 ## [0.1.4] - 2026-05-13
 
 ### Fixed
@@ -60,7 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/smitt14ua/zeus/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/smitt14ua/zeus/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/smitt14ua/zeus/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/smitt14ua/zeus/compare/v0.1.1...v0.1.2
