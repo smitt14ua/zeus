@@ -33,9 +33,13 @@ docs/
 → [protocols/startup_params.md](protocols/startup_params.md)
 
 ### I'm an AI agent working on the codebase
-→ Start with [ai/architecture_rules.md](ai/architecture_rules.md),
-  then [ai/conventions.md](ai/conventions.md),
-  then [ai/common_gotchas.md](ai/common_gotchas.md)
+→ Start with [../CLAUDE.md](../CLAUDE.md) (Claude Code) or [../AGENTS.md](../AGENTS.md) (other agents),
+  then [ai/architecture_rules.md](ai/architecture_rules.md),
+  [ai/conventions.md](ai/conventions.md),
+  [ai/common_gotchas.md](ai/common_gotchas.md)
+
+### I want to contribute
+→ [../CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ### I need to look up a term or abbreviation
 → [glossary.md](glossary.md)

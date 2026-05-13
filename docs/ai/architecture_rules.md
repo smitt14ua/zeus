@@ -12,6 +12,7 @@ cmd/
  ├── internal/profile
  ├── internal/storage
  ├── internal/process
+ ├── internal/missions
  └── internal/arma
 
 internal/storage
@@ -23,6 +24,9 @@ internal/process
 internal/profile
  └── internal/arma
 
+internal/missions
+ └── internal/arma
+
 internal/arma
  └── (no internal deps)
 ```
@@ -31,6 +35,7 @@ internal/arma
 - `internal/arma` has no internal imports. It is a pure domain library.
 - `internal/profile` imports `internal/arma` only.
 - `internal/storage` and `internal/process` import `internal/profile` only.
+- `internal/missions` imports `internal/arma` only.
 - `cmd/` is the only package that imports across multiple internal packages.
 - No circular imports. No internal package imports `cmd/`.
 
@@ -42,6 +47,7 @@ internal/arma
 | `internal/profile` | Profile struct, YAML/TOML loading (with default pre-population), config file writing |
 | `internal/storage` | Profile persistence (YAML files in `~/.zeus/profiles/`; reads both `.yaml` and `.toml`) |
 | `internal/process` | PID file management, process existence checks, server launch |
+| `internal/missions` | `.pbo` sync drivers (path copy/symlink, S3); ETag sidecar; `Puller` dispatcher |
 | `cmd/` | CLI surface, user prompts, flag parsing |
 
 ## Profile Lifecycle

@@ -90,7 +90,7 @@ Dispatched from `Puller.Pull` when `source.Driver == "s3"`.
 2. Build `aws.Config` with credential provider chain (inline → env → SDK default)
 3. If `source.Endpoint` non-empty, set `BaseEndpoint` + `UsePathStyle: true` (required for MinIO)
 4. List all objects at `s3://bucket/prefix` with paginated `ListObjectsV2`; filter to keys ending in `.pbo`
-5. Strip prefix from each key to get bare filename (e.g. `"servers/prod/op.pbo"` → `"op.pbo"`)
+5. Strip prefix from each key. If the result still contains `/`, the object is in a subdirectory → skip it. Only flat objects at the prefix level are synced. The full S3 key is preserved separately for download (see `s3Object` struct).
 6. Load ETag sidecar: `loadETags(targetDir)` → `map[string]string` (filename → ETag)
 7. Diff:
    - Filename in S3, not in sidecar → **Added** (download)

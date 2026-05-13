@@ -208,6 +208,48 @@ file is not kept. `profile info --format toml` re-serializes from the stored YAM
 
 ---
 
+---
+
+## 15. S3 Driver Only Syncs Flat Objects at Prefix Level
+
+**Trap:** Expecting S3 objects in subdirectories to be downloaded.
+
+`listPBOs` strips the configured prefix from each key and skips any result that still
+contains `/`. This means only objects stored directly at the prefix level are synced.
+
+```
+bucket: missions  (prefix: "")
+  mission1.VR.pbo           → downloaded ✓
+  submissions/mission3.pbo  → ignored (contains "/" after strip) ✗
+```
+
+With `prefix: submissions`, `ListObjectsV2` only returns objects whose keys start with
+`submissions/`. After stripping, `mission3.Stratis.pbo` has no `/` → downloaded.
+Root-level files are excluded by the S3 listing itself.
+
+**Fix:** Set `prefix: <folder>` in `mission_source` to scope the pull to that folder.
+Objects not under the prefix are never returned by S3, and objects deeper than one level
+below the prefix are filtered by the `/` check.
+
+---
+
+## 16. S3 Objects Use Full Key for Download, Flat Name Locally
+
+**Trap:** Assuming the local filename and the S3 key are the same string.
+
+`S3Driver.listPBOs` returns `map[string]s3Object` where the map key is the flat local
+filename and `s3Object.key` is the full S3 object key (used for `GetObject`). These are
+different when a prefix is set.
+
+```
+S3 key:     "submissions/mission3.Stratis.pbo"
+local name: "mission3.Stratis.pbo"
+```
+
+Do not reconstruct the S3 key from the local name — use `obj.key` from the struct.
+
+---
+
 ## Related
 
 - [Conventions](conventions.md)

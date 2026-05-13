@@ -184,12 +184,24 @@ mission_source:
 mission_source:
   driver: s3
   bucket: my-missions-bucket
-  prefix: arma3/          # optional key prefix
+  prefix: arma3/          # optional — scopes sync to this key prefix
   region: us-east-1
-  endpoint: https://...   # optional, for S3-compatible stores
+  endpoint: https://...   # optional, for S3-compatible stores (MinIO, etc.)
   access_key_id: AKID
   secret_access_key: secret
 ```
+
+**Prefix scoping:** only `.pbo` objects stored *directly* at the prefix level are downloaded — objects in subdirectories are ignored.
+
+```
+bucket: missions
+  mission1.VR.pbo          ← downloaded (prefix: "" or omitted)
+  mission2.Altis.pbo       ← downloaded (prefix: "" or omitted)
+  submissions/
+    mission3.Stratis.pbo   ← ignored (prefix: ""); downloaded only if prefix: submissions
+```
+
+Set `prefix: submissions` to scope the pull to the `submissions/` folder exclusively.
 
 ## File locations
 
