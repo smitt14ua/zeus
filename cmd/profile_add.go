@@ -85,7 +85,13 @@ func processProfileMods(p *profile.Profile, copyAll bool, force bool) error {
 		scanner = bufio.NewScanner(os.Stdin)
 	}
 	original := make([]string, len(p.Params.Mod))
-	copy(original, p.Params.Mod)
+	for i, m := range p.Params.Mod {
+		if !filepath.IsAbs(m) && p.InstallDir != "" {
+			original[i] = filepath.Join(p.InstallDir, m)
+		} else {
+			original[i] = m
+		}
+	}
 
 	knownKeys := collectAllModKeys(original)
 

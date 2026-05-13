@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-13
+
+### Fixed
+- Relative mod paths in `params.mod` and `params.server_mod` now work — ZEUS resolves them to `<install_dir>/<path>` before scanning for keys (`profile add`) and before building the `-mod=` launch argument (`profile start`)
+
+### Docs
+- `docs/ai/conventions.md`: updated Mod Paths section — paths can now be absolute or relative to `install_dir`
+- `README.md`: added mod path examples showing both absolute and relative forms
+
 ## [0.1.3] - 2026-05-13
 
 ### Fixed
@@ -51,7 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/smitt14ua/zeus/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/smitt14ua/zeus/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/smitt14ua/zeus/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/smitt14ua/zeus/compare/v0.1.0...v0.1.1

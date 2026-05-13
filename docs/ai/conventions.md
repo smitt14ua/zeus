@@ -130,8 +130,13 @@ Warnings that do not abort execution use `fmt.Fprintf(os.Stderr, "warning: ...")
 
 ## Mod Paths
 
-Mod paths in the `params.mod` YAML list should be absolute paths to mod directories.
-Relative paths are resolved relative to `install_dir` by Arma 3 (not by ZEUS).
+Mod paths in `params.mod` and `params.server_mod` can be absolute or relative.
+Relative paths are resolved to `filepath.Join(install_dir, path)` by ZEUS at two points:
+
+- **`profile add`** — before `arma.LoadMod` scans the directory for keys and submods
+- **`profile start`** — before building the `-mod=` launch argument (`absModPaths` in `runner.go`)
+
+Stored profile values are left as-is; resolution is always done at use time.
 
 Keys (`.bikey` files) are identified by lowercase `.bikey` extension check.
 Submods are directories inside a mod folder prefixed with `@`.

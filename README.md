@@ -139,6 +139,9 @@ install_dir: /opt/arma3
 params:
   port: 2302
   limit_fps: 100
+  mod:
+    - /opt/arma3/@CBA_A3        # absolute path
+    - @ACE                      # relative — resolved to <install_dir>/@ACE
   # See https://community.bistudio.com/wiki/Arma_3:_Startup_Parameters
   # Parameters use snake_case
 

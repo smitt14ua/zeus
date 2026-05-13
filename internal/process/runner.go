@@ -53,6 +53,9 @@ func (r Runner) prepareParams(p profile.Profile) (profile.Profile, error) {
 	name := p.Name
 	p.Params.Name = &name
 
+	p.Params.Mod = absModPaths(p.InstallDir, p.Params.Mod)
+	p.Params.ServerMod = absModPaths(p.InstallDir, p.Params.ServerMod)
+
 	return p, nil
 }
 
@@ -146,6 +149,18 @@ func buildArgs(params any) []string {
 	}
 
 	return args
+}
+
+func absModPaths(installDir string, paths []string) []string {
+	out := make([]string, len(paths))
+	for i, p := range paths {
+		if !filepath.IsAbs(p) && installDir != "" {
+			out[i] = filepath.Join(installDir, p)
+		} else {
+			out[i] = p
+		}
+	}
+	return out
 }
 
 func quoteIfNeeded(s string) string {
