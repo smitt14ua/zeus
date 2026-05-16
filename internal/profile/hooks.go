@@ -33,7 +33,19 @@ func RunHooks(commands []string, p Profile) error {
 func runHookCommand(command string, extraEnv []string, dir string) error {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", command)
+		// cmd /C "..." lets Go escape the string, which mangles internal quotes.
+		// Writing to a temp .bat file and running that bypasses all quoting issues.
+		f, err := os.CreateTemp("", "zeus-hook-*.bat")
+		if err != nil {
+			return fmt.Errorf("create temp batch: %w", err)
+		}
+		defer os.Remove(f.Name())
+		if _, err := fmt.Fprintf(f, "@echo off\r\n%s\r\n", command); err != nil {
+			f.Close()
+			return fmt.Errorf("write temp batch: %w", err)
+		}
+		f.Close()
+		cmd = exec.Command("cmd", "/C", f.Name())
 	} else {
 		cmd = exec.Command("sh", "-c", command)
 	}
