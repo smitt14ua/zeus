@@ -248,6 +248,52 @@ Do not reconstruct the S3 key from the local name — use `obj.key` from the str
 
 ---
 
+---
+
+## 17. Hook Commands on Windows Use a Temp Batch File
+
+**Trap:** Assuming hook commands are passed directly to `cmd /C "..."`.
+
+`exec.Command("cmd", "/C", command)` causes Go's argument-escaping layer to wrap the
+command in outer quotes and turn internal `"` into `\"`. cmd.exe does not interpret `\"`
+inside a `/C "..."` block, which mangles headers and URLs:
+
+```
+# User's hook:
+curl -H "Content-Type: text/plain" https://example.com
+
+# What cmd.exe actually receives after Go's escaping:
+cmd /C "curl -H \"Content-Type: text/plain\" https://example.com"
+# → curl: (3) URL rejected: Port number was not a decimal number
+```
+
+**Fix (already in `RunHooks`):** On Windows, each command is written to a temporary
+`.bat` file (`os.CreateTemp("", "zeus-hook-*.bat")`) and run as `cmd /C <file>`. The
+file path passed to `cmd /C` contains no internal quotes, so Go's escaping is harmless.
+The batch file contains the raw command string exactly as written by the user.
+
+**Implication for hook authors:** Use cmd.exe (batch) syntax in hooks:
+- Env vars: `%ZEUS_PROFILE%` (not `$ZEUS_PROFILE`)
+- Command chaining: `cmd1 && cmd2`, `cmd1 || cmd2`
+- Directory creation ignoring existing: `mkdir path || cd .`
+
+---
+
+## 18. optionalkeys Is Never Modified by ZEUS
+
+**Trap:** Expecting ZEUS to manage or clean `optionalkeys/` the way it manages `keys/`.
+
+`keys/` is managed by `processProfileMods` — unknown `.bikey` files can be removed
+interactively when running `profile add`. `optionalkeys/` is intentionally excluded from
+this management. ZEUS only creates the directory (`os.MkdirAll`) and never reads, writes,
+or deletes its contents.
+
+Both directories are passed to Arma 3 via `-keysFolder`. The split allows users to keep
+keys for optional mods that are not listed in the profile's `mod:` array without having
+them flagged as "unknown" during `profile add`.
+
+---
+
 ## Related
 
 - [Conventions](conventions.md)

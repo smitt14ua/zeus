@@ -249,6 +249,97 @@ bucket: missions
 
 Set `prefix: submissions` to scope the pull to the `submissions/` folder exclusively.
 
+## Hooks
+
+Profiles can declare shell commands under a `hooks:` key. Commands run sequentially in the order listed; the first non-zero exit aborts the remaining commands for that event.
+
+### Lifecycle points
+
+| Hook | Fires when |
+|------|-----------|
+| `post_profile_add` | After `zeus add` / `zeus profile add` completes |
+| `pre_profile_start` | Before the server process is prepared (`zeus start`) |
+| `pre_profile_run` | Immediately before `arma3server_x64` is spawned |
+| `post_profile_run` | Immediately after the server process starts |
+| `post_profile_start` | After `zeus start` completes |
+| `pre_profile_stop` | Before the server process is killed (`zeus stop`) |
+| `post_profile_stop` | After the server process has terminated |
+| `pre_pull_missions` | Before `zeus missions pull` fetches files |
+| `post_pull_missions` | After `zeus missions pull` completes |
+
+### Environment variables
+
+Every hook command receives these variables in addition to the current environment:
+
+| Variable | Value |
+|----------|-------|
+| `ZEUS_PROFILE` | Profile name |
+| `ZEUS_PROFILE_DIR` | Absolute path to `<install_dir>/.zeus/<name>` |
+| `ZEUS_PROFILE_INSTALL_DIR` | Absolute path to `<install_dir>` |
+
+The working directory is set to `<install_dir>/.zeus/<name>` (the profile directory).
+
+### Shell used
+
+- **Linux / macOS:** `sh -c "<command>"`
+- **Windows:** written to a temporary `.bat` file and executed with `cmd /C`
+
+### Examples
+
+```yaml
+hooks:
+  # Download a CBA settings PBO after adding the profile
+  post_profile_add:
+    - 'mkdir -p servermods/@cba_settings_userconfig/addons'
+    - >-
+        curl -X POST "https://example.com/api/cba-settings"
+        -H "Content-Type: text/plain; charset=utf-8"
+        --data-binary "@cba_settings.sqf"
+        -o "servermods/@cba_settings_userconfig/addons/cba_settings.pbo"
+
+  # Notify a webhook when the server starts
+  post_profile_start:
+    - 'curl -s -X POST "https://hooks.example.com/notify" -d "{\"event\":\"start\",\"profile\":\"$ZEUS_PROFILE\"}"'
+
+  # Pull fresh missions before each start
+  pre_profile_start:
+    - 'zeus missions pull %ZEUS_PROFILE%'   # Windows
+    # - 'zeus missions pull $ZEUS_PROFILE'  # Linux
+
+  # Sync modpack from a remote server before starting
+  pre_profile_run:
+    - 'rsync -av user@mod-server:/mods/ "$ZEUS_PROFILE_INSTALL_DIR/@mymod/"'
+
+  # Archive logs after stopping
+  post_profile_stop:
+    - 'tar -czf "$ZEUS_PROFILE_DIR/logs/archive-$(date +%Y%m%d-%H%M%S).tar.gz" "$ZEUS_PROFILE_DIR/logs/"'
+```
+
+**Windows example** (cmd.exe syntax inside the batch file):
+
+```yaml
+hooks:
+  post_profile_add:
+    - 'mkdir servermods\@cba_settings_userconfig\addons || cd .'
+    - >-
+        curl -X POST "https://example.com/api/cba-settings"
+        -H "Content-Type: text/plain; charset=utf-8"
+        --data-binary "@cba_settings.sqf"
+        -o "servermods\@cba_settings_userconfig\addons\cba_settings.pbo"
+
+  post_profile_start:
+    - 'echo Profile %ZEUS_PROFILE% started, dir is %ZEUS_PROFILE_DIR%'
+```
+
+> **Tip:** To debug the injected variables, add a hook like:
+> ```yaml
+> post_profile_add:
+>   - 'echo ZEUS_PROFILE=%ZEUS_PROFILE%'          # Windows
+>   - 'echo ZEUS_PROFILE_DIR=%ZEUS_PROFILE_DIR%'
+>   - 'echo ZEUS_PROFILE_INSTALL_DIR=%ZEUS_PROFILE_INSTALL_DIR%'
+>   - 'cd'
+> ```
+
 ## File locations
 
 | Path | Contents |
@@ -257,7 +348,8 @@ Set `prefix: submissions` to scope the pull to the `submissions/` folder exclusi
 | `~/.zeus/running/<name>.pid` | PID file while server is running |
 | `<install_dir>/.zeus/<name>/configs/` | Generated `server.cfg` and `basic.cfg` |
 | `<install_dir>/.zeus/<name>/mpmissions/` | Mission `.pbo` files |
-| `<install_dir>/.zeus/<name>/keys/` | BI signing keys (`.bikey` files) |
+| `<install_dir>/.zeus/<name>/keys/` | BI signing keys (`.bikey` files) copied from mods |
+| `<install_dir>/.zeus/<name>/optionalkeys/` | User-managed keys for optional mods (never modified by ZEUS) |
 
 ## License
 

@@ -58,16 +58,31 @@ profile add (cmd)
   → processProfileMods             — interactive mod/key management
   → ProfileRepository.Save         — write profile.json to ~/.zeus/profiles/ (always JSON)
   → ProfileWriter.Write            — write server.cfg + basic.cfg to install_dir
+                                     creates keys/, optionalkeys/, mpmissions/, BattlEye/
+  → RunHooks(Hooks.PostProfileAdd) — user-defined commands
 
 profile start (cmd)
   → ProfileRepository.Get          — load profile.json (or .yaml/.toml) via loader.FromFile (no defaults)
+  → RunHooks(Hooks.PreProfileStart)
   → Runner.prepareParams           — inject managed paths into Params
+  → RunHooks(Hooks.PreProfileRun)
   → Runner.Run                     — exec.Start(arma3server_x64...)
+  → RunHooks(Hooks.PostProfileRun)
+  → RunHooks(Hooks.PostProfileStart)
   → creates ~/.zeus/running/<name>.pid (written by Arma 3 via -pid flag)
 
 profile stop (cmd)
+  → ProfileRepository.Get          — load profile to resolve hooks
+  → RunHooks(Hooks.PreProfileStop)
   → Manager.Kill                   — read PID file, os.FindProcess, proc.Kill, remove PID file
   → Manager.WaitGone               — poll until process gone AND PID file gone
+  → RunHooks(Hooks.PostProfileStop)
+
+missions pull (cmd)
+  → ProfileRepository.Get
+  → RunHooks(Hooks.PrePullMissions)
+  → missions.Puller{}.Pull(...)
+  → RunHooks(Hooks.PostPullMissions)
 ```
 
 ## Config Generation Invariant
