@@ -13,7 +13,9 @@ Only the latest release receives security fixes.
 
 **Do not open a public issue for security vulnerabilities.**
 
-Use GitHub's private vulnerability reporting:
+Private vulnerability reporting is **enabled** on this repository.
+Use GitHub's built-in private reporting — your report goes directly to the maintainer without being publicly visible:
+
 **https://github.com/smitt14ua/zeus/security/advisories/new**
 
 Or email: smitt14ua@gmail.com
