@@ -125,6 +125,7 @@ func (c *Client) runCommand(ctx context.Context, id string, cmd protocol.Command
 	} else {
 		c.sendResult(id, true, 0, "")
 	}
+	c.sendHeartbeat()
 }
 
 func (c *Client) sendResult(id string, success bool, exitCode int, errMsg string) {
@@ -144,6 +145,7 @@ func (c *Client) sendHello() error {
 }
 
 func (c *Client) heartbeatLoop(ctx context.Context) {
+	c.sendHeartbeat()
 	ticker := time.NewTicker(c.HeartbeatInterval)
 	defer ticker.Stop()
 	for {
@@ -151,14 +153,18 @@ func (c *Client) heartbeatLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			c.writeRaw(protocol.TypeHeartbeat, "", protocol.Heartbeat{
-				Agent:         c.Name,
-				ZeusVersion:   c.Version,
-				Profiles:      collectProfileStatus(),
-				AllowedScopes: c.AllowedScopes,
-			})
+			c.sendHeartbeat()
 		}
 	}
+}
+
+func (c *Client) sendHeartbeat() {
+	c.writeRaw(protocol.TypeHeartbeat, "", protocol.Heartbeat{
+		Agent:         c.Name,
+		ZeusVersion:   c.Version,
+		Profiles:      collectProfileStatus(),
+		AllowedScopes: c.AllowedScopes,
+	})
 }
 
 func (c *Client) writeRaw(msgType, id string, payload any) error {
