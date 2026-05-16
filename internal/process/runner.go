@@ -88,18 +88,20 @@ func (r Runner) Command(p profile.Profile) (string, error) {
 	return strings.Join(parts, " "), nil
 }
 
-func (r Runner) Run(p profile.Profile) error {
+// Run launches the server process and returns the OS PID of the launched process.
+// The server writes its own PID to the .pid file; use Manager.WaitReady to confirm startup.
+func (r Runner) Run(p profile.Profile) (int, error) {
 	prepared, err := r.prepareParams(p)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	home, err := r.homeDir()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if err := os.MkdirAll(filepath.Join(home, ".zeus", "running"), 0755); err != nil {
-		return err
+		return 0, err
 	}
 
 	exe := resolveExecutable(prepared)
@@ -107,7 +109,10 @@ func (r Runner) Run(p profile.Profile) error {
 
 	cmd := exec.Command(exe, args...)
 	cmd.Dir = prepared.InstallDir
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+	return cmd.Process.Pid, nil
 }
 
 func buildArgs(params any) []string {

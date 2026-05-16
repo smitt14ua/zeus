@@ -137,12 +137,14 @@ sequenceDiagram
     A->>S: WebSocket upgrade (w/ token)
     S-->>P: state snapshot (current agents)
     A->>S: hello
-    loop every HeartbeatInterval (default 30 s)
+    A->>S: heartbeat (immediate)
+    loop every HeartbeatInterval (default 1 s)
         A->>S: heartbeat
     end
     S->>A: command
     A->>S: stream (0..N lines)
     A->>S: result
+    A->>S: heartbeat (post-command)
     S->>A: ping
     A->>S: pong
     Note over A,S: on disconnect — agent reconnects
@@ -187,7 +189,7 @@ treating it as a new agent.
 ### `heartbeat`
 
 **Direction:** agent → server  
-**When:** periodically (default every 30 s).
+**When:** once immediately after `hello`, then periodically (default every 1 s). Also sent once after each command completes so the server receives updated profile/PID state without waiting for the next tick.
 
 ```json
 {
@@ -389,6 +391,21 @@ Start the Arma 3 server for a profile.
 | `name` | string | yes | Profile name. |
 | `dry_run` | boolean | no | If `true`, print the launch command without executing. |
 
+**This command blocks until startup is confirmed or fails.** The agent:
+
+1. Launches the server process and records the OS PID returned by the OS (`directPID`).
+2. Polls for the server's own PID file (written by Arma 3 via `-pid=`). If `directPID` exits before the file appears, the command fails immediately.
+3. Once the PID file appears, waits a 3 s stability window to confirm the process hasn't crashed on startup.
+4. Returns an error if the PID file does not appear within 60 s or the process exits during the stability window.
+
+**Stream output (on success):**
+```
+Waiting for profile "main" to start (timeout 1m0s)...
+Profile "main" started (PID 12345).
+```
+
+Because `profile.start` can take up to 60 s, the panel should keep the command connection open and display streamed progress lines as they arrive.
+
 ---
 
 ### `profile.stop`
@@ -480,7 +497,7 @@ If `allowed_scopes` is absent or an empty array, all commands are permitted.
 
 When a **browser** (panel UI) connects to the server's `/ws/panel` endpoint,
 the server should immediately send a full state snapshot so the UI can populate
-without waiting for the next heartbeat:
+without waiting for the agent's next periodic heartbeat:
 
 ```json
 {

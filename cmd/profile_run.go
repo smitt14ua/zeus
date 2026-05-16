@@ -24,12 +24,15 @@ var profileStartCmd = &cobra.Command{
 
 func runProfileStart(cmd *cobra.Command, args []string) {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	if err := execProfileStart(cmd.Context(), args[0], dryRun, os.Stdout); err != nil {
+	startTimeout, _ := cmd.Flags().GetDuration("start-timeout")
+	if err := execProfileStart(cmd.Context(), args[0], dryRun, startTimeout, os.Stdout); err != nil {
 		fatal(err)
 	}
 }
 
-func execProfileStart(ctx context.Context, name string, dryRun bool, w io.Writer) error {
+const startStabilityWindow = 3 * time.Second
+
+func execProfileStart(ctx context.Context, name string, dryRun bool, startTimeout time.Duration, w io.Writer) error {
 	mgr := process.Manager{}
 	running, err := mgr.List()
 	if err != nil {
@@ -66,9 +69,16 @@ func execProfileStart(ctx context.Context, name string, dryRun bool, w io.Writer
 			return err
 		}
 	}
-	if err := runner.Run(p); err != nil {
+	directPID, err := runner.Run(p)
+	if err != nil {
 		return err
 	}
+	fmt.Fprintf(w, "Waiting for profile %q to start (timeout %s)...\n", name, startTimeout)
+	pid, err := mgr.WaitReady(name, directPID, startTimeout, startStabilityWindow)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "Profile %q started (PID %d).\n", name, pid)
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PostProfileRun, p); err != nil {
 			return err
@@ -145,6 +155,7 @@ func execProfileStop(ctx context.Context, name string, w io.Writer) error {
 func init() {
 	profileCmd.AddCommand(profileStartCmd)
 	profileStartCmd.Flags().BoolP("dry-run", "n", false, "print the generated command without executing")
+	profileStartCmd.Flags().Duration("start-timeout", 60*time.Second, "how long to wait for the server PID file to appear")
 
 	profileCmd.AddCommand(profileStopCmd)
 }

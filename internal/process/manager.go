@@ -62,6 +62,48 @@ func (m Manager) List() ([]Entry, error) {
 	return processes, nil
 }
 
+// WaitReady polls until the server writes its PID file, then holds for stabilityWindow
+// to confirm the process hasn't crashed immediately. directPID is the OS PID returned
+// by Runner.Run; if it exits before the PID file appears the function fails fast.
+// Returns the PID read from the file on success.
+func (m Manager) WaitReady(name string, directPID int, pidTimeout, stabilityWindow time.Duration) (int, error) {
+	dir, err := m.runningDir()
+	if err != nil {
+		return 0, err
+	}
+	pidFile := filepath.Join(dir, name+".pid")
+	deadline := time.Now().Add(pidTimeout)
+
+	for time.Now().Before(deadline) {
+		// Fast-fail: if the launch process already exited and the PID file still isn't there, it crashed.
+		if !processExists(directPID) {
+			if _, statErr := os.Stat(pidFile); os.IsNotExist(statErr) {
+				return 0, fmt.Errorf("profile %q: launch process exited before writing PID file", name)
+			}
+			// PID file exists even though the launcher exited (server may have forked) — fall through.
+		}
+
+		data, readErr := os.ReadFile(pidFile)
+		if readErr == nil {
+			pid, parseErr := strconv.Atoi(strings.TrimSpace(string(data)))
+			if parseErr != nil {
+				return 0, fmt.Errorf("invalid PID in %s.pid: %w", name, parseErr)
+			}
+			// Stability window: confirm the process hasn't immediately exited.
+			stableUntil := time.Now().Add(stabilityWindow)
+			for time.Now().Before(stableUntil) {
+				if !processExists(pid) {
+					return 0, fmt.Errorf("profile %q: server process %d exited shortly after start", name, pid)
+				}
+				time.Sleep(200 * time.Millisecond)
+			}
+			return pid, nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return 0, fmt.Errorf("profile %q did not write a PID file within %s", name, pidTimeout)
+}
+
 // WaitGone polls until the process with pid is gone and the pid file is deleted.
 // Returns true if both conditions are met within timeout.
 func (m Manager) WaitGone(pid int, name string, timeout time.Duration) bool {

@@ -100,7 +100,7 @@ func buildExecutor() *agent.Executor {
 	})
 
 	exec.Register(protocol.CmdProfileStart, func(ctx context.Context, args map[string]any, w io.Writer) error {
-		return execProfileStart(ctx, agent.StringArg(args, "name"), agent.BoolArg(args, "dry_run"), w)
+		return execProfileStart(ctx, agent.StringArg(args, "name"), agent.BoolArg(args, "dry_run"), 60*time.Second, w)
 	})
 
 	exec.Register(protocol.CmdProfileStop, func(ctx context.Context, args map[string]any, w io.Writer) error {
@@ -128,7 +128,7 @@ func init() {
 	agentCmd.Flags().String("url", "", "WebSocket URL of the web panel (required)")
 	agentCmd.Flags().String("token", "", "shared secret token (required)")
 	agentCmd.Flags().String("name", "", "agent name shown in the panel (default: hostname)")
-	agentCmd.Flags().Duration("heartbeat", 30*time.Second, "heartbeat interval")
+	agentCmd.Flags().Duration("heartbeat", 1*time.Second, "heartbeat interval")
 	agentCmd.Flags().Duration("reconnect", 5*time.Second, "reconnect delay on disconnect")
 	agentCmd.Flags().String("allow", "", `comma-separated scopes this agent accepts (default: all)
   Scopes: view, control, manage, update, all
