@@ -34,8 +34,8 @@ send commands and receive real-time output and status updates.
 
 ```mermaid
 flowchart LR
-    A["zeus agent CLI\n(Arma 3 machine)"]
-    B["Web Panel Server\n(your server)"]
+    A["zeus agent CLI (Arma 3 machine)"]
+    B["Web Panel Server (your server)"]
     C["Browser Panel UI"]
 
     A -- "outbound connect" --> B
@@ -518,7 +518,7 @@ sequenceDiagram
 
     S->>A: command (id=X, cmd=profile.list)
     Note right of A: executes profile.list
-    A->>S: stream (id=X) — line: "[{\"name\":\"main\"..."
+    A->>S: stream (id=X) — line: [{name:main...}]
     A->>S: result (id=X) — success: true
 ```
 
@@ -530,8 +530,8 @@ sequenceDiagram
     participant A as Agent
 
     S->>A: command (id=Y)
-    Note right of A: profile "ghost" not found
-    A->>S: result (id=Y) — success: false, error: "profile \"ghost\" not found"
+    Note right of A: profile 'ghost' not found
+    A->>S: result (id=Y) — success: false, error: profile 'ghost' not found
 ```
 
 ### Disallowed Command (Scope Violation)
@@ -542,8 +542,9 @@ sequenceDiagram
     participant A as Agent
 
     S->>A: command (id=Z, cmd=profile.rm)
-    Note right of A: agent allows only "view"<br/>profile.rm not in scope
-    A->>S: result (id=Z) — success: false, error: "command \"profile.rm\" is not permitted..."
+    Note right of A: agent allows only scope=view
+    Note right of A: profile.rm not in scope
+    A->>S: result (id=Z) — success: false, error: profile.rm not permitted
 ```
 
 ### Reconnect
