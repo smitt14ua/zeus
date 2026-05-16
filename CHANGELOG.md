@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-16
+
+### Added
+
+- **`zeus agent`** — new command that connects outbound to a web panel server over WebSocket (WSS), enabling a browser-based panel to list profiles, start/stop servers, stream output, and pull missions without opening inbound ports on the Arma 3 machine.
+  - Reconnects automatically after disconnect (configurable delay, default 5 s).
+  - Sends a `hello` on connect and periodic `heartbeat` (default 30 s) carrying profile status and PID.
+  - Executes commands concurrently; correlates `stream` / `result` messages back to the originating command via a UUID.
+  - Supported remote commands: `profile.list`, `profile.info`, `profile.add`, `profile.start`, `profile.stop`, `profile.rm`, `missions.pull`, `update`.
+- **Scope-based command allowlist (`--allow`)** — restrict which commands the agent accepts. Scopes: `view` (list/info), `control` (start/stop), `manage` (add/rm/missions), `update`, `all` (default). Disallowed commands are rejected immediately with a descriptive error; the agent reports its allowed scopes in every `hello` and `heartbeat` so the panel UI can hide unavailable actions.
+- **JSON Schema for profile** (`docs/schema/profile.json`) — draft-07 schema covering the full profile data model (`StartupParams`, `ServerConfig`, `BasicServerConfig`, `RCon`, `MissionSource`, `ProfileHooks` and all nested enums). Panel editors can reference it for validation and autocompletion.
+
+### Docs
+
+- `docs/agent-protocol.md` — full agent protocol specification: transport, authentication, message envelope, connection lifecycle, command reference, scope system, sequence diagrams (Mermaid), error handling, implementation checklist, and code examples in Node.js, Python, and Go.
+
 ## [0.2.0] - 2026-05-16
 
 ### Added
