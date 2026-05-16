@@ -23,7 +23,7 @@ type ProfileWriter struct{}
 func (w ProfileWriter) Write(p Profile) error {
 	dir := filepath.Join(p.InstallDir, ".zeus", p.Name)
 
-	for _, sub := range []string{"configs", "mpmissions", "keys", BattleyeDirName()} {
+	for _, sub := range []string{"configs", "mpmissions", "keys", "optionalkeys", BattleyeDirName()} {
 		if err := os.MkdirAll(filepath.Join(dir, sub), 0755); err != nil {
 			return err
 		}

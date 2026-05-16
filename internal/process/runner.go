@@ -37,6 +37,7 @@ func (r Runner) prepareParams(p profile.Profile) (profile.Profile, error) {
 	}
 
 	p.Params.KeysFolder = append(p.Params.KeysFolder, filepath.Join(zeusDir, "keys"))
+	p.Params.KeysFolder = append(p.Params.KeysFolder, filepath.Join(zeusDir, "optionalkeys"))
 
 	cfg := filepath.Join(zeusDir, "configs", "basic.cfg")
 	p.Params.Cfg = &cfg

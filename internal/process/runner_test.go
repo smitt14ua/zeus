@@ -186,6 +186,19 @@ func TestPrepareParams(t *testing.T) {
 	if prepared.Params.Name == nil || *prepared.Params.Name != "myserver" {
 		t.Errorf("Name = %v", prepared.Params.Name)
 	}
+
+	wantKeys := []string{
+		filepath.Join(zeusDir, "keys"),
+		filepath.Join(zeusDir, "optionalkeys"),
+	}
+	if len(prepared.Params.KeysFolder) != len(wantKeys) {
+		t.Fatalf("KeysFolder = %v, want %v", prepared.Params.KeysFolder, wantKeys)
+	}
+	for i, want := range wantKeys {
+		if prepared.Params.KeysFolder[i] != want {
+			t.Errorf("KeysFolder[%d] = %q, want %q", i, prepared.Params.KeysFolder[i], want)
+		}
+	}
 }
 
 func TestPrepareParams_PreservesMpMissions(t *testing.T) {

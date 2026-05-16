@@ -62,6 +62,30 @@ func TestProfileWriter_Write(t *testing.T) {
 		assert.FileExists(t, filepath.Join(base, ".zeus", "alpha", "configs", "basic.cfg"))
 	})
 
+	t.Run("optionalkeys_dir_created", func(t *testing.T) {
+		base := t.TempDir()
+		p := Profile{Name: "srv", InstallDir: base}
+
+		require.NoError(t, w.Write(p))
+
+		assert.DirExists(t, filepath.Join(base, ".zeus", "srv", "keys"))
+		assert.DirExists(t, filepath.Join(base, ".zeus", "srv", "optionalkeys"))
+	})
+
+	t.Run("optionalkeys_files_preserved_on_update", func(t *testing.T) {
+		base := t.TempDir()
+		p := Profile{Name: "srv", InstallDir: base}
+
+		require.NoError(t, w.Write(p))
+
+		sentinel := filepath.Join(base, ".zeus", "srv", "optionalkeys", "mymod.bikey")
+		require.NoError(t, os.WriteFile(sentinel, []byte("key"), 0644))
+
+		require.NoError(t, w.Write(p))
+
+		assert.FileExists(t, sentinel)
+	})
+
 	t.Run("battleye_dir_and_configs_created", func(t *testing.T) {
 		p := Profile{
 			Name:       "be-server",
