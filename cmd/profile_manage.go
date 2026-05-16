@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,30 +26,36 @@ var profileLsCmd = &cobra.Command{
 	Args:    cobra.NoArgs,
 	Example: "  zeus profile ls",
 	Run: func(cmd *cobra.Command, args []string) {
-		repo := storage.ProfileRepository{}
-		profiles, err := repo.List()
-		if err != nil {
+		if err := execProfileList(cmd.Context(), os.Stdout); err != nil {
 			fatal(err)
 		}
-
-		mgr := process.Manager{}
-		running, _ := mgr.List()
-		runningSet := make(map[string]bool, len(running))
-		for _, e := range running {
-			runningSet[e.Name] = true
-		}
-
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tSTATUS")
-		for _, p := range profiles {
-			status := "-"
-			if runningSet[p.Name] {
-				status = "running"
-			}
-			fmt.Fprintf(w, "%s\t%s\n", p.Name, status)
-		}
-		w.Flush()
 	},
+}
+
+func execProfileList(ctx context.Context, w io.Writer) error {
+	repo := storage.ProfileRepository{}
+	profiles, err := repo.List()
+	if err != nil {
+		return err
+	}
+
+	mgr := process.Manager{}
+	running, _ := mgr.List()
+	runningSet := make(map[string]bool, len(running))
+	for _, e := range running {
+		runningSet[e.Name] = true
+	}
+
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "NAME\tSTATUS")
+	for _, p := range profiles {
+		status := "-"
+		if runningSet[p.Name] {
+			status = "running"
+		}
+		fmt.Fprintf(tw, "%s\t%s\n", p.Name, status)
+	}
+	return tw.Flush()
 }
 
 var profileInfoCmd = &cobra.Command{
@@ -59,80 +67,96 @@ var profileInfoCmd = &cobra.Command{
 		"  zeus profile info my-server --json\n" +
 		"  zeus profile info my-server --toml",
 	Run: func(cmd *cobra.Command, args []string) {
-		repo := storage.ProfileRepository{}
-		p, err := repo.Get(args[0])
-		if err != nil {
-			fatal(err)
-		}
-
 		asYAML, _ := cmd.Flags().GetBool("yaml")
 		asJSON, _ := cmd.Flags().GetBool("json")
 		asTOML, _ := cmd.Flags().GetBool("toml")
-
-		switch {
-		case asYAML:
-			data, err := yaml.Marshal(p)
-			if err != nil {
-				fatal(err)
-			}
-			fmt.Print(string(data))
-		case asJSON:
-			data, err := json.MarshalIndent(p, "", "  ")
-			if err != nil {
-				fatal(err)
-			}
-			fmt.Println(string(data))
-		case asTOML:
-			data, err := toml.Marshal(p)
-			if err != nil {
-				fatal(err)
-			}
-			fmt.Print(string(data))
-		default:
-			printProfileConsole(p)
+		format := "console"
+		if asYAML {
+			format = "yaml"
+		} else if asJSON {
+			format = "json"
+		} else if asTOML {
+			format = "toml"
+		}
+		if err := execProfileInfo(cmd.Context(), args[0], format, os.Stdout); err != nil {
+			fatal(err)
 		}
 	},
 }
 
-func printProfileConsole(p profile.Profile) {
-	fmt.Printf("Profile:     %s\n", p.Name)
-	fmt.Printf("Install Dir: %s\n", p.InstallDir)
+func execProfileInfo(ctx context.Context, name, format string, w io.Writer) error {
+	repo := storage.ProfileRepository{}
+	p, err := repo.Get(name)
+	if err != nil {
+		return err
+	}
+	switch format {
+	case "yaml":
+		data, err := yaml.Marshal(p)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprint(w, string(data))
+		return err
+	case "json":
+		data, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(w, string(data))
+		return err
+	case "toml":
+		data, err := toml.Marshal(p)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprint(w, string(data))
+		return err
+	default:
+		printProfileConsole(p, w)
+		return nil
+	}
+}
 
-	fmt.Println("\nServer Config")
+func printProfileConsole(p profile.Profile, w io.Writer) {
+	fmt.Fprintf(w, "Profile:     %s\n", p.Name)
+	fmt.Fprintf(w, "Install Dir: %s\n", p.InstallDir)
+
+	fmt.Fprintln(w, "\nServer Config")
 	if p.Config.Hostname != nil {
-		fmt.Printf("  Hostname:    %s\n", *p.Config.Hostname)
+		fmt.Fprintf(w, "  Hostname:    %s\n", *p.Config.Hostname)
 	}
 	if p.Config.MaxPlayers != nil {
-		fmt.Printf("  Max Players: %d\n", *p.Config.MaxPlayers)
+		fmt.Fprintf(w, "  Max Players: %d\n", *p.Config.MaxPlayers)
 	}
 	if p.Config.BattlEye != nil {
-		fmt.Printf("  BattlEye:    %v\n", *p.Config.BattlEye)
+		fmt.Fprintf(w, "  BattlEye:    %v\n", *p.Config.BattlEye)
 	}
 	if p.Config.ForcedDifficulty != nil {
-		fmt.Printf("  Difficulty:  %s\n", *p.Config.ForcedDifficulty)
+		fmt.Fprintf(w, "  Difficulty:  %s\n", *p.Config.ForcedDifficulty)
 	}
 	if len(p.Config.Missions) > 0 {
-		fmt.Printf("  Missions:    %d\n", len(p.Config.Missions))
+		fmt.Fprintf(w, "  Missions:    %d\n", len(p.Config.Missions))
 		for _, m := range p.Config.Missions {
-			fmt.Printf("    - %s (%s)\n", m.Template, m.Difficulty)
+			fmt.Fprintf(w, "    - %s (%s)\n", m.Template, m.Difficulty)
 		}
 	}
 
-	fmt.Println("\nStartup Params")
+	fmt.Fprintln(w, "\nStartup Params")
 	if p.Params.Port != nil {
-		fmt.Printf("  Port:       %d\n", *p.Params.Port)
+		fmt.Fprintf(w, "  Port:       %d\n", *p.Params.Port)
 	}
 	if p.Params.LimitFPS != nil {
-		fmt.Printf("  FPS Limit:  %d\n", *p.Params.LimitFPS)
+		fmt.Fprintf(w, "  FPS Limit:  %d\n", *p.Params.LimitFPS)
 	}
 	if p.Params.MaxMem != nil {
-		fmt.Printf("  Max Mem:    %d MiB\n", *p.Params.MaxMem)
+		fmt.Fprintf(w, "  Max Mem:    %d MiB\n", *p.Params.MaxMem)
 	}
 	if len(p.Params.Mod) > 0 {
-		fmt.Printf("  Mods:       %s\n", strings.Join(p.Params.Mod, ", "))
+		fmt.Fprintf(w, "  Mods:       %s\n", strings.Join(p.Params.Mod, ", "))
 	}
 	if len(p.Params.ServerMod) > 0 {
-		fmt.Printf("  Server Mods: %s\n", strings.Join(p.Params.ServerMod, ", "))
+		fmt.Fprintf(w, "  Server Mods: %s\n", strings.Join(p.Params.ServerMod, ", "))
 	}
 }
 
@@ -142,49 +166,51 @@ var profileRmCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Example: "  zeus profile rm my-server\n  zeus profile rm my-server --force",
 	Run: func(cmd *cobra.Command, args []string) {
-		name := args[0]
-
-		repo := storage.ProfileRepository{}
-		p, err := repo.Get(name)
-		if err != nil {
-			fatal(err)
-		}
-
-		mgr := process.Manager{}
-		running, _ := mgr.List()
-		for _, e := range running {
-			if e.Name == name {
-				fatalf("profile %q is currently running (PID %d); stop it before deleting", name, e.PID)
-			}
-		}
-
 		force, _ := cmd.Flags().GetBool("force")
-		if !force {
-			if stdinIsPipe() {
-				fatalf("stdin is not a terminal; pass --force to delete without confirmation")
-			}
-			profileDir := filepath.Join(p.InstallDir, ".zeus", name)
-			fmt.Fprintf(os.Stderr, "The following will be permanently removed:\n")
-			fmt.Fprintf(os.Stderr, "  profile data : %s\n", profileDir)
-			fmt.Fprintf(os.Stderr, "  contents     : configs, mpmissions, keys, logs, and all other profile data\n")
-			fmt.Fprintf(os.Stderr, "\nType \"yes\" to confirm, anything else aborts: ")
-
-			scanner := bufio.NewScanner(os.Stdin)
-			scanner.Scan()
-			if strings.TrimSpace(scanner.Text()) != "yes" {
-				fmt.Fprintln(os.Stderr, "Aborted.")
-				return
-			}
+		if !force && stdinIsPipe() {
+			fatalf("stdin is not a terminal; pass --force to delete without confirmation")
 		}
-
-		profileDir := filepath.Join(p.InstallDir, ".zeus", name)
-		if err := os.RemoveAll(profileDir); err != nil {
-			fatal(err)
-		}
-		if err := repo.Delete(name); err != nil {
+		if err := execProfileRm(cmd.Context(), args[0], force, os.Stdin, os.Stderr); err != nil {
 			fatal(err)
 		}
 	},
+}
+
+func execProfileRm(ctx context.Context, name string, force bool, in io.Reader, w io.Writer) error {
+	repo := storage.ProfileRepository{}
+	p, err := repo.Get(name)
+	if err != nil {
+		return err
+	}
+
+	mgr := process.Manager{}
+	running, _ := mgr.List()
+	for _, e := range running {
+		if e.Name == name {
+			return fmt.Errorf("profile %q is currently running (PID %d); stop it before deleting", name, e.PID)
+		}
+	}
+
+	if !force {
+		profileDir := filepath.Join(p.InstallDir, ".zeus", name)
+		fmt.Fprintf(w, "The following will be permanently removed:\n")
+		fmt.Fprintf(w, "  profile data : %s\n", profileDir)
+		fmt.Fprintf(w, "  contents     : configs, mpmissions, keys, logs, and all other profile data\n")
+		fmt.Fprintf(w, "\nType \"yes\" to confirm, anything else aborts: ")
+
+		scanner := bufio.NewScanner(in)
+		scanner.Scan()
+		if strings.TrimSpace(scanner.Text()) != "yes" {
+			fmt.Fprintln(w, "Aborted.")
+			return nil
+		}
+	}
+
+	profileDir := filepath.Join(p.InstallDir, ".zeus", name)
+	if err := os.RemoveAll(profileDir); err != nil {
+		return err
+	}
+	return repo.Delete(name)
 }
 
 func init() {

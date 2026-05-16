@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -21,58 +23,61 @@ var profileStartCmd = &cobra.Command{
 }
 
 func runProfileStart(cmd *cobra.Command, args []string) {
-	name := args[0]
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if err := execProfileStart(cmd.Context(), args[0], dryRun, os.Stdout); err != nil {
+		fatal(err)
+	}
+}
 
+func execProfileStart(ctx context.Context, name string, dryRun bool, w io.Writer) error {
 	mgr := process.Manager{}
 	running, err := mgr.List()
 	if err != nil {
-		fatal(err)
+		return err
 	}
 	for _, e := range running {
 		if e.Name == name {
-			fatalf("profile %q is already running (PID %d)", name, e.PID)
+			return fmt.Errorf("profile %q is already running (PID %d)", name, e.PID)
 		}
 	}
 
 	repo := storage.ProfileRepository{}
 	p, err := repo.Get(name)
 	if err != nil {
-		fatal(err)
+		return err
 	}
 
 	runner := process.Runner{}
 
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	if dryRun {
 		command, err := runner.Command(p)
 		if err != nil {
-			fatal(err)
+			return err
 		}
-		fmt.Println(command)
-		return
+		_, err = fmt.Fprintln(w, command)
+		return err
 	}
 
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PreProfileStart, p); err != nil {
-			fatal(err)
+			return err
 		}
-	}
-	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PreProfileRun, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
 	if err := runner.Run(p); err != nil {
-		fatal(err)
+		return err
 	}
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PostProfileRun, p); err != nil {
-			fatal(err)
+			return err
 		}
 		if err := profile.RunHooks(p.Hooks.PostProfileStart, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
+	return nil
 }
 
 var profileStopCmd = &cobra.Command{
@@ -84,18 +89,22 @@ var profileStopCmd = &cobra.Command{
 }
 
 func runProfileStop(cmd *cobra.Command, args []string) {
-	name := args[0]
+	if err := execProfileStop(cmd.Context(), args[0], os.Stdout); err != nil {
+		fatal(err)
+	}
+}
 
+func execProfileStop(ctx context.Context, name string, w io.Writer) error {
 	repo := storage.ProfileRepository{}
 	p, err := repo.Get(name)
 	if err != nil {
-		fatal(err)
+		return err
 	}
 
 	mgr := process.Manager{}
 	running, err := mgr.List()
 	if err != nil {
-		fatal(err)
+		return err
 	}
 
 	var pid int
@@ -108,29 +117,29 @@ func runProfileStop(cmd *cobra.Command, args []string) {
 		}
 	}
 	if !found {
-		fatalf("profile %q is not running", name)
+		return fmt.Errorf("profile %q is not running", name)
 	}
 
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PreProfileStop, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
 	if err := mgr.Kill(name); err != nil {
-		fatal(err)
+		return err
 	}
 
-	info("Waiting for process %d to terminate...", pid)
+	fmt.Fprintf(w, "Waiting for process %d to terminate...\n", pid)
 	if !mgr.WaitGone(pid, name, 30*time.Second) {
-		fmt.Fprintf(os.Stderr, "process %d did not terminate within 30s\n", pid)
-		os.Exit(1)
+		return fmt.Errorf("process %d did not terminate within 30s", pid)
 	}
-	fmt.Printf("Profile %q stopped.\n", name)
+	fmt.Fprintf(w, "Profile %q stopped.\n", name)
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PostProfileStop, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
+	return nil
 }
 
 func init() {

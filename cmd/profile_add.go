@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -28,55 +29,72 @@ var profileAddCmd = &cobra.Command{
 }
 
 func runProfileAdd(cmd *cobra.Command, args []string) {
-	loader := profile.ProfileLoader{}
-	var p profile.Profile
-	var err error
+	nameOverride, _ := cmd.Flags().GetString("name")
+	copyKeys, _ := cmd.Flags().GetBool("copy-keys")
+	force, _ := cmd.Flags().GetBool("force")
+
+	var r io.Reader
+	var format string
 	if len(args) == 1 {
-		p, err = loader.FromFile(args[0])
-	} else if stdinIsPipe() {
-		var data []byte
-		data, err = io.ReadAll(os.Stdin)
-		if err == nil {
-			p, err = loader.FromBytes(data)
+		f, err := os.Open(args[0])
+		if err != nil {
+			fatal(err)
 		}
+		defer f.Close()
+		r = f
+		format = profile.FormatFromPath(args[0])
+	} else if stdinIsPipe() {
+		r = os.Stdin
+		format = "json"
+		force = true
 	} else {
 		fatalf("provide a YAML, TOML, or JSON file path or pipe content via stdin")
 	}
-	if err != nil {
+
+	if err := execProfileAdd(cmd.Context(), r, format, nameOverride, copyKeys, force, os.Stderr); err != nil {
 		fatal(err)
 	}
+}
 
-	if name, _ := cmd.Flags().GetString("name"); name != "" {
-		p.Name = name
+func execProfileAdd(ctx context.Context, r io.Reader, format, nameOverride string, copyKeys, force bool, w io.Writer) error {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	loader := profile.ProfileLoader{}
+	p, err := loader.FromBytesFormat(data, format)
+	if err != nil {
+		return err
+	}
+
+	if nameOverride != "" {
+		p.Name = nameOverride
 	}
 
 	repo := storage.ProfileRepository{}
 	if exists, _ := repo.Exists(p.Name); exists {
-		info("profile %q already exists, updating.", p.Name)
+		fmt.Fprintf(w, "profile %q already exists, updating.\n", p.Name)
 	}
 
-	copyKeys, _ := cmd.Flags().GetBool("copy-keys")
-	force, _ := cmd.Flags().GetBool("force")
-	if stdinIsPipe() {
-		force = true
-	}
 	if err := processProfileMods(&p, copyKeys, force); err != nil {
-		fatal(err)
+		return err
 	}
 	if err := repo.Save(p); err != nil {
-		fatal(err)
+		return err
 	}
 
 	writer := profile.ProfileWriter{}
 	if err := writer.Write(p); err != nil {
-		fatal(err)
+		return err
 	}
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PostProfileAdd, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
-	info("profile %q saved. To start it: zeus start %s", p.Name, p.Name)
+	fmt.Fprintf(w, "profile %q saved. To start it: zeus start %s\n", p.Name, p.Name)
+	return nil
 }
 
 func processProfileMods(p *profile.Profile, copyAll bool, force bool) error {

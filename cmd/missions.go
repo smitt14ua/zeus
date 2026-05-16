@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -29,16 +31,20 @@ var missionsPullCmd = &cobra.Command{
 }
 
 func runMissionsPull(cmd *cobra.Command, args []string) {
-	name := args[0]
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if err := execMissionsPull(cmd.Context(), args[0], dryRun, os.Stdout); err != nil {
+		fatal(err)
+	}
+}
 
+func execMissionsPull(ctx context.Context, name string, dryRun bool, w io.Writer) error {
 	repo := storage.ProfileRepository{}
 	p, err := repo.Get(name)
 	if err != nil {
-		fatal(err)
+		return err
 	}
 	if p.MissionSource == nil {
-		fatalf("profile %q has no mission_source configured", name)
+		return fmt.Errorf("profile %q has no mission_source configured", name)
 	}
 
 	source := *p.MissionSource
@@ -60,7 +66,7 @@ func runMissionsPull(cmd *cobra.Command, args []string) {
 
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PrePullMissions, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
 
@@ -73,18 +79,18 @@ func runMissionsPull(cmd *cobra.Command, args []string) {
 	if serverRunning {
 		header += " [server running — existing files locked]"
 	}
-	fmt.Println(header)
+	fmt.Fprintln(w, header)
 
 	result, err := missions.Puller{}.Pull(source, targetDir, dryRun, serverRunning)
 	if err != nil {
-		fatal(err)
+		return err
 	}
 
 	if mode == "symlink" {
 		if result.Symlinked {
-			fmt.Printf("  → %s\n", source.Path)
+			fmt.Fprintf(w, "  → %s\n", source.Path)
 		} else {
-			fmt.Printf("  = %s (symlink unchanged)\n", source.Path)
+			fmt.Fprintf(w, "  = %s (symlink unchanged)\n", source.Path)
 		}
 	} else {
 		sort.Strings(result.Added)
@@ -93,42 +99,43 @@ func runMissionsPull(cmd *cobra.Command, args []string) {
 		sort.Strings(result.Skipped)
 		sort.Strings(result.Locked)
 		for _, f := range result.Added {
-			fmt.Printf("  + %s\n", f)
+			fmt.Fprintf(w, "  + %s\n", f)
 		}
 		for _, f := range result.Updated {
-			fmt.Printf("  ~ %s\n", f)
+			fmt.Fprintf(w, "  ~ %s\n", f)
 		}
 		for _, f := range result.Removed {
-			fmt.Printf("  - %s\n", f)
+			fmt.Fprintf(w, "  - %s\n", f)
 		}
 		for _, f := range result.Skipped {
-			fmt.Printf("  = %s\n", f)
+			fmt.Fprintf(w, "  = %s\n", f)
 		}
 		for _, f := range result.Locked {
-			fmt.Printf("  ! %s\n", f)
+			fmt.Fprintf(w, "  ! %s\n", f)
 		}
 		if len(result.Locked) > 0 {
-			fmt.Fprintf(os.Stderr, "%d file(s) not updated — stop the server then re-run to apply changes.\n", len(result.Locked))
+			fmt.Fprintf(w, "%d file(s) not updated — stop the server then re-run to apply changes.\n", len(result.Locked))
 		}
 	}
 
 	if dryRun {
-		fmt.Println("Dry run complete. No changes made.")
-		return
+		fmt.Fprintln(w, "Dry run complete. No changes made.")
+		return nil
 	}
 
 	if mode == "symlink" {
-		fmt.Println("Done.")
+		fmt.Fprintln(w, "Done.")
 	} else {
-		fmt.Printf("Done. %d added, %d updated, %d removed, %d unchanged.\n",
+		fmt.Fprintf(w, "Done. %d added, %d updated, %d removed, %d unchanged.\n",
 			len(result.Added), len(result.Updated), len(result.Removed), len(result.Skipped))
 	}
 
 	if p.Hooks != nil {
 		if err := profile.RunHooks(p.Hooks.PostPullMissions, p); err != nil {
-			fatal(err)
+			return err
 		}
 	}
+	return nil
 }
 
 func init() {
