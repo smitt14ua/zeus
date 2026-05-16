@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-16
+
+### Fixed
+
+- **Symlinked mod paths now work correctly during `zeus profile add`** — `e.IsDir()` on a directory entry does not follow symlinks on any platform, so symlinked `addons/`, `keys/`, and `optionals/` subdirectories inside a mod folder were silently skipped, and symlinked submod directories inside `optionals/` were never loaded. Fixed by using `os.Stat` (which follows symlinks) for all directory checks in `LoadMod` and `loadSubmods`. The mod path itself is also resolved via `filepath.EvalSymlinks` at load time, handling Windows junctions and Linux/macOS symlinks uniformly.
+
 ## [0.3.1] - 2026-05-16
 
 ### Changed
@@ -139,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/smitt14ua/zeus/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/smitt14ua/zeus/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/smitt14ua/zeus/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/smitt14ua/zeus/compare/v0.1.7...v0.2.0
