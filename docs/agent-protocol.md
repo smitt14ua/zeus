@@ -32,17 +32,16 @@ send commands and receive real-time output and status updates.
 
 ## Architecture
 
-```
-┌─────────────────────┐          WebSocket          ┌─────────────────────┐
-│   zeus agent CLI    │ ───── outbound connect ────► │  Web Panel Server   │
-│  (Arma 3 machine)   │ ◄──── commands / ping ────── │  (your server)      │
-│                     │ ───── stream / result ──────► │                     │
-└─────────────────────┘                              └──────────┬──────────┘
-                                                                │  HTTP / WS
-                                                                ▼
-                                                     ┌─────────────────────┐
-                                                     │   Browser Panel UI  │
-                                                     └─────────────────────┘
+```mermaid
+flowchart LR
+    A["zeus agent CLI\n(Arma 3 machine)"]
+    B["Web Panel Server\n(your server)"]
+    C["Browser Panel UI"]
+
+    A -- "outbound connect" --> B
+    B -- "commands / ping" --> A
+    A -- "stream / result" --> B
+    B -- "HTTP / WS" --> C
 ```
 
 Key design decisions:
@@ -129,29 +128,26 @@ and expect all `stream` and `result` messages for that command to carry the same
 
 ## Connection Lifecycle
 
-```
-Agent                                    Server
-  │                                         │
-  │──── WebSocket upgrade (w/ token) ──────►│
-  │                                         │
-  │◄─── state snapshot (current agents) ───│  (server → all panels, not agent)
-  │                                         │
-  │──── hello ─────────────────────────────►│
-  │                                         │
-  │  (every HeartbeatInterval, default 30s) │
-  │──── heartbeat ──────────────────────────►│
-  │                                         │
-  │◄─── command ───────────────────────────│
-  │──── stream (0..N lines) ───────────────►│
-  │──── result ────────────────────────────►│
-  │                                         │
-  │◄─── ping ──────────────────────────────│
-  │──── pong ───────────────────────────────►│
-  │                                         │
-  │  (on disconnect — agent reconnects)     │
-  │──── WebSocket upgrade ──────────────────►│
-  │──── hello ─────────────────────────────►│
-  │  ...                                    │
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant S as Server
+    participant P as Panels (browsers)
+
+    A->>S: WebSocket upgrade (w/ token)
+    S-->>P: state snapshot (current agents)
+    A->>S: hello
+    loop every HeartbeatInterval (default 30 s)
+        A->>S: heartbeat
+    end
+    S->>A: command
+    A->>S: stream (0..N lines)
+    A->>S: result
+    S->>A: ping
+    A->>S: pong
+    Note over A,S: on disconnect — agent reconnects
+    A->>S: WebSocket upgrade
+    A->>S: hello
 ```
 
 The agent **always reconnects** after a disconnect. The reconnect delay is
@@ -365,19 +361,6 @@ Show detailed information about one profile.
 
 ---
 
-### `profile.new`
-
-Create a new profile with defaults.
-
-| Arg | Type | Required | Description |
-|-----|------|----------|-------------|
-| `name` | string | yes | New profile name. |
-| `format` | string | no | Template format: `yaml` (default), `toml`, `json`. |
-
-**Stream output:** the generated profile template, ready to edit.
-
----
-
 ### `profile.add`
 
 Register a profile from raw content (useful when the panel has an editor).
@@ -391,6 +374,9 @@ Register a profile from raw content (useful when the panel has an editor).
 **Notes:**
 - If the profile already exists it is overwritten (force mode).
 - The profile's config files (`.cfg`) are written immediately on add.
+- A JSON Schema (draft-07) describing the full profile data model is available at
+  `docs/schema/profile.json`. Panel editors can use it for validation and
+  autocompletion when building a `profile.add` form.
 
 ---
 
@@ -456,7 +442,7 @@ panel.
 |-------|-------------------|
 | `view` | `profile.list`, `profile.info` |
 | `control` | `profile.start`, `profile.stop` |
-| `manage` | `profile.new`, `profile.add`, `profile.rm`, `missions.pull` |
+| `manage` | `profile.add`, `profile.rm`, `missions.pull` |
 | `update` | `update` |
 | `all` | All commands (default when `--allow` is omitted) |
 
@@ -525,45 +511,55 @@ agent protocol itself. Its format is implementation-specific.
 
 ### Successful Command
 
-```
-Server                   Agent
-  │                        │
-  │── command (id=X) ──────►│
-  │                        │  (executes profile.list)
-  │◄── stream (id=X) ──────│  line: "[{\"name\":\"main\"..."
-  │◄── result (id=X) ──────│  success: true
+```mermaid
+sequenceDiagram
+    participant S as Server
+    participant A as Agent
+
+    S->>A: command (id=X, cmd=profile.list)
+    Note right of A: executes profile.list
+    A->>S: stream (id=X) — line: "[{\"name\":\"main\"..."
+    A->>S: result (id=X) — success: true
 ```
 
 ### Failed Command (Profile Not Found)
 
-```
-Server                   Agent
-  │                        │
-  │── command (id=Y) ──────►│
-  │                        │  (profile "ghost" not found)
-  │◄── result (id=Y) ──────│  success: false, error: "profile \"ghost\" not found"
+```mermaid
+sequenceDiagram
+    participant S as Server
+    participant A as Agent
+
+    S->>A: command (id=Y)
+    Note right of A: profile "ghost" not found
+    A->>S: result (id=Y) — success: false, error: "profile \"ghost\" not found"
 ```
 
 ### Disallowed Command (Scope Violation)
 
-```
-Server                   Agent
-  │                        │
-  │── command (id=Z) ──────►│  (agent allows only "view")
-  │                        │  (profile.rm is not in "view")
-  │◄── result (id=Z) ──────│  success: false, error: "command \"profile.rm\" is not permitted..."
+```mermaid
+sequenceDiagram
+    participant S as Server
+    participant A as Agent
+
+    S->>A: command (id=Z, cmd=profile.rm)
+    Note right of A: agent allows only "view"<br/>profile.rm not in scope
+    A->>S: result (id=Z) — success: false, error: "command \"profile.rm\" is not permitted..."
 ```
 
 ### Reconnect
 
-```
-Agent                    Server
-  │  (connection drops)    │
-  │                        │
-  │  (waits 5 s)           │
-  │── WebSocket upgrade ───►│
-  │── hello ───────────────►│  (server broadcasts agent.connected)
-  │── heartbeat ───────────►│  (server broadcasts updated state)
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant S as Server
+
+    Note over A,S: connection drops
+    Note over A: waits 5 s (reconnect delay)
+    A->>S: WebSocket upgrade
+    A->>S: hello
+    Note right of S: broadcasts agent.connected
+    A->>S: heartbeat
+    Note right of S: broadcasts updated state
 ```
 
 ---
