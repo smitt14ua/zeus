@@ -24,15 +24,26 @@ var profileLsCmd = &cobra.Command{
 	Use:     "ls",
 	Short:   "List saved profiles",
 	Args:    cobra.NoArgs,
-	Example: "  zeus profile ls",
+	Example: "  zeus profile ls\n  zeus profile ls --json",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := execProfileList(cmd.Context(), os.Stdout); err != nil {
+		asJSON, _ := cmd.Flags().GetBool("json")
+		format := "console"
+		if asJSON {
+			format = "json"
+		}
+		if err := execProfileList(cmd.Context(), format, os.Stdout); err != nil {
 			fatal(err)
 		}
 	},
 }
 
-func execProfileList(ctx context.Context, w io.Writer) error {
+type profileListEntry struct {
+	Name    string `json:"name"`
+	Running bool   `json:"running"`
+	PID     int    `json:"pid,omitempty"`
+}
+
+func execProfileList(ctx context.Context, format string, w io.Writer) error {
 	repo := storage.ProfileRepository{}
 	profiles, err := repo.List()
 	if err != nil {
@@ -41,16 +52,34 @@ func execProfileList(ctx context.Context, w io.Writer) error {
 
 	mgr := process.Manager{}
 	running, _ := mgr.List()
-	runningSet := make(map[string]bool, len(running))
+	pidByName := make(map[string]int, len(running))
 	for _, e := range running {
-		runningSet[e.Name] = true
+		pidByName[e.Name] = e.PID
+	}
+
+	if format == "json" {
+		entries := make([]profileListEntry, 0, len(profiles))
+		for _, p := range profiles {
+			pid := pidByName[p.Name]
+			entries = append(entries, profileListEntry{
+				Name:    p.Name,
+				Running: pid != 0,
+				PID:     pid,
+			})
+		}
+		data, err := json.MarshalIndent(entries, "", "  ")
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(w, string(data))
+		return err
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "NAME\tSTATUS")
 	for _, p := range profiles {
 		status := "-"
-		if runningSet[p.Name] {
+		if pidByName[p.Name] != 0 {
 			status = "running"
 		}
 		fmt.Fprintf(tw, "%s\t%s\n", p.Name, status)
@@ -215,6 +244,7 @@ func execProfileRm(ctx context.Context, name string, force bool, in io.Reader, w
 
 func init() {
 	profileCmd.AddCommand(profileLsCmd)
+	profileLsCmd.Flags().Bool("json", false, "output as JSON")
 
 	profileCmd.AddCommand(profileInfoCmd)
 	profileInfoCmd.Flags().Bool("yaml", false, "output as YAML")

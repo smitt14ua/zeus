@@ -361,6 +361,84 @@ func TestProfileLoader_MissionSource_S3_JSON(t *testing.T) {
 	assert.Equal(t, "minioadmin", p.MissionSource.SecretAccessKey)
 }
 
+// ── FromBytesFormat ───────────────────────────────────────────────────────────
+
+func TestFromBytesFormat_YAML(t *testing.T) {
+	loader := ProfileLoader{}
+	p, err := loader.FromBytesFormat([]byte(testProfileYAML), "yaml")
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", p.Name)
+	assert.Equal(t, uint16(2302), *p.Params.Port)
+}
+
+func TestFromBytesFormat_TOML(t *testing.T) {
+	loader := ProfileLoader{}
+	p, err := loader.FromBytesFormat([]byte(testProfileTOML), "toml")
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", p.Name)
+	assert.Equal(t, uint16(2302), *p.Params.Port)
+}
+
+func TestFromBytesFormat_JSON(t *testing.T) {
+	loader := ProfileLoader{}
+	p, err := loader.FromBytesFormat([]byte(testProfileJSON), "json")
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", p.Name)
+}
+
+func TestFromBytesFormat_UnknownDefaultsToJSON(t *testing.T) {
+	loader := ProfileLoader{}
+	p, err := loader.FromBytesFormat([]byte(testProfileJSON), "unknown")
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", p.Name)
+}
+
+func TestFromBytesFormat_CaseInsensitive(t *testing.T) {
+	loader := ProfileLoader{}
+	p, err := loader.FromBytesFormat([]byte(testProfileYAML), "YAML")
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", p.Name)
+}
+
+func TestFromBytesFormat_InvalidYAML(t *testing.T) {
+	loader := ProfileLoader{}
+	_, err := loader.FromBytesFormat([]byte(":\tinvalid"), "yaml")
+	assert.Error(t, err)
+}
+
+func TestFromBytesFormat_InvalidTOML(t *testing.T) {
+	loader := ProfileLoader{}
+	_, err := loader.FromBytesFormat([]byte("[[[bad"), "toml")
+	assert.Error(t, err)
+}
+
+// ── FormatFromPath ────────────────────────────────────────────────────────────
+
+func TestFormatFromPath(t *testing.T) {
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"profile.yaml", "yaml"},
+		{"profile.yml", "yaml"},
+		{"profile.YAML", "yaml"},
+		{"profile.YML", "yaml"},
+		{"profile.toml", "toml"},
+		{"profile.TOML", "toml"},
+		{"profile.json", "json"},
+		{"profile.JSON", "json"},
+		{"profile", "json"},
+		{"profile.txt", "json"},
+		{"/abs/path/my-server.yaml", "yaml"},
+		{"/abs/path/my-server.toml", "toml"},
+	}
+	for _, c := range cases {
+		t.Run(c.path, func(t *testing.T) {
+			assert.Equal(t, c.want, FormatFromPath(c.path))
+		})
+	}
+}
+
 func TestProfileLoader_MissionSource_S3_TOML(t *testing.T) {
 	loader := ProfileLoader{}
 	const toml = `

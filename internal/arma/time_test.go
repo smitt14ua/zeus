@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestNewTime(t *testing.T) {
@@ -198,4 +199,75 @@ func TestTimeMarshalJSON(t *testing.T) {
 	var back Time
 	require.NoError(t, json.Unmarshal(data, &back))
 	assert.Equal(t, d.Nanoseconds(), back.Nanoseconds())
+}
+
+// ── YAML ──────────────────────────────────────────────────────────────────────
+
+func TestTimeMarshalYAML(t *testing.T) {
+	type wrapper struct {
+		T Time `yaml:"t"`
+	}
+	w := wrapper{T: NewTime(5_000_000)}
+	data, err := yaml.Marshal(w)
+	require.NoError(t, err)
+
+	var back wrapper
+	require.NoError(t, yaml.Unmarshal(data, &back))
+	assert.Equal(t, uint64(5_000_000), back.T.Nanoseconds())
+}
+
+func TestTimeUnmarshalYAML_Int(t *testing.T) {
+	type wrapper struct{ T Time `yaml:"t"` }
+	var w wrapper
+	require.NoError(t, yaml.Unmarshal([]byte("t: 5000000"), &w))
+	assert.Equal(t, uint64(5_000_000), w.T.Nanoseconds())
+}
+
+func TestTimeUnmarshalYAML_String(t *testing.T) {
+	type wrapper struct{ T Time `yaml:"t"` }
+	var w wrapper
+	require.NoError(t, yaml.Unmarshal([]byte(`t: "5ms"`), &w))
+	assert.Equal(t, uint64(5_000_000), w.T.Nanoseconds())
+}
+
+func TestTimeUnmarshalYAML_Error(t *testing.T) {
+	type wrapper struct{ T Time `yaml:"t"` }
+	var w wrapper
+	assert.Error(t, yaml.Unmarshal([]byte("t: [1,2,3]"), &w))
+}
+
+func TestTimeUnmarshalYAML_InvalidString(t *testing.T) {
+	type wrapper struct{ T Time `yaml:"t"` }
+	var w wrapper
+	assert.Error(t, yaml.Unmarshal([]byte(`t: "badvalue"`), &w))
+}
+
+// ── TOML ──────────────────────────────────────────────────────────────────────
+
+func TestTimeUnmarshalTOML_Int64(t *testing.T) {
+	var d Time
+	require.NoError(t, d.UnmarshalTOML(int64(5_000_000)))
+	assert.Equal(t, uint64(5_000_000), d.Nanoseconds())
+}
+
+func TestTimeUnmarshalTOML_Float64(t *testing.T) {
+	var d Time
+	require.NoError(t, d.UnmarshalTOML(float64(5_000_000)))
+	assert.Equal(t, uint64(5_000_000), d.Nanoseconds())
+}
+
+func TestTimeUnmarshalTOML_String(t *testing.T) {
+	var d Time
+	require.NoError(t, d.UnmarshalTOML("5ms"))
+	assert.Equal(t, uint64(5_000_000), d.Nanoseconds())
+}
+
+func TestTimeUnmarshalTOML_InvalidString(t *testing.T) {
+	var d Time
+	assert.Error(t, d.UnmarshalTOML("bad"))
+}
+
+func TestTimeUnmarshalTOML_UnsupportedType(t *testing.T) {
+	var d Time
+	assert.Error(t, d.UnmarshalTOML(true))
 }

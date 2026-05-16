@@ -45,3 +45,11 @@ func TestEncode_NoID(t *testing.T) {
 		t.Errorf("ID should be omitted, got %q", env.ID)
 	}
 }
+
+func TestEncode_MarshalError(t *testing.T) {
+	// channels cannot be JSON-marshaled
+	_, err := Encode(TypeStream, "id", make(chan int))
+	if err == nil {
+		t.Fatal("expected error for un-marshalable payload")
+	}
+}

@@ -239,3 +239,58 @@ func TestPrepareParams_ResolvesMods(t *testing.T) {
 		t.Errorf("absolute mod changed: %q", prepared.Params.Mod[1])
 	}
 }
+
+// ── Command ───────────────────────────────────────────────────────────────────
+
+func TestRunner_Command(t *testing.T) {
+	r := Runner{HomeDir: t.TempDir()}
+	installDir := t.TempDir()
+	p := profile.Profile{
+		Name:       "myserver",
+		InstallDir: installDir,
+		Params: arma.StartupParams{
+			Port: ptr(uint16(2302)),
+		},
+	}
+
+	cmd, err := r.Command(p)
+	if err != nil {
+		t.Fatalf("Command: %v", err)
+	}
+
+	wantBin := "arma3server_x64"
+	if runtime.GOOS == "windows" {
+		wantBin += ".exe"
+	}
+	if !strings.Contains(cmd, wantBin) {
+		t.Errorf("command %q missing executable %q", cmd, wantBin)
+	}
+	if !strings.Contains(cmd, "-port=2302") {
+		t.Errorf("command %q missing -port=2302", cmd)
+	}
+	// auto-injected params
+	if !strings.Contains(cmd, "-config=") {
+		t.Errorf("command %q missing -config", cmd)
+	}
+	if !strings.Contains(cmd, "-keysFolder=") {
+		t.Errorf("command %q missing -keysFolder", cmd)
+	}
+}
+
+func TestRunner_Command_CustomExecutable(t *testing.T) {
+	r := Runner{HomeDir: t.TempDir()}
+	installDir := t.TempDir()
+	p := profile.Profile{
+		Name:       "srv",
+		InstallDir: installDir,
+		Executable: "arma3server_linux",
+	}
+
+	cmd, err := r.Command(p)
+	if err != nil {
+		t.Fatalf("Command: %v", err)
+	}
+	if !strings.Contains(cmd, "arma3server_linux") {
+		t.Errorf("command %q missing custom executable", cmd)
+	}
+}

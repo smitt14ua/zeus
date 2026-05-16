@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/smitt14ua/zeus/internal/profile"
@@ -130,5 +132,110 @@ func TestProfileRepository_Get_NotFound(t *testing.T) {
 	_, err := r.Get("ghost")
 	if err == nil {
 		t.Fatal("expected error for missing profile")
+	}
+}
+
+// ── List skips irrelevant entries ─────────────────────────────────────────────
+
+func TestProfileRepository_List_SkipsDirectories(t *testing.T) {
+	r := newRepo(t)
+	if err := r.Save(sampleProfile("alpha")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Plant a subdirectory inside the profiles dir — must be skipped.
+	dir, _ := r.profilesDir()
+	if err := os.MkdirAll(filepath.Join(dir, "somedir"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	profiles, err := r.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(profiles) != 1 {
+		t.Fatalf("expected 1 profile (directory should be skipped), got %d", len(profiles))
+	}
+}
+
+func TestProfileRepository_List_SkipsUnknownExtensions(t *testing.T) {
+	r := newRepo(t)
+	if err := r.Save(sampleProfile("alpha")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Plant a .txt file — must be skipped.
+	dir, _ := r.profilesDir()
+	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("ignored"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	profiles, err := r.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(profiles) != 1 {
+		t.Fatalf("expected 1 profile (.txt should be skipped), got %d", len(profiles))
+	}
+}
+
+// ── Get and Exists with YAML/TOML files ──────────────────────────────────────
+
+const yamlProfile = `
+name: yaml-srv
+install_dir: /opt/arma3
+`
+
+func TestProfileRepository_Get_YAML(t *testing.T) {
+	r := newRepo(t)
+	dir, _ := r.profilesDir()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "yaml-srv.yaml"), []byte(yamlProfile), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := r.Get("yaml-srv")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if p.Name != "yaml-srv" {
+		t.Errorf("Name = %q", p.Name)
+	}
+}
+
+func TestProfileRepository_Exists_YAML(t *testing.T) {
+	r := newRepo(t)
+	dir, _ := r.profilesDir()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "yaml-srv.yaml"), []byte(yamlProfile), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	exists, err := r.Exists("yaml-srv")
+	if err != nil || !exists {
+		t.Fatalf("Exists = %v err = %v", exists, err)
+	}
+}
+
+func TestProfileRepository_Delete_YAML(t *testing.T) {
+	r := newRepo(t)
+	dir, _ := r.profilesDir()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "yaml-srv.yaml"), []byte(yamlProfile), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := r.Delete("yaml-srv"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	exists, err := r.Exists("yaml-srv")
+	if err != nil || exists {
+		t.Fatalf("expected not exists after delete, got exists=%v err=%v", exists, err)
 	}
 }

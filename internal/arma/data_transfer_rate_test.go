@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestNewDataTransferRate(t *testing.T) {
@@ -212,4 +213,82 @@ func TestDataTransferRateMarshalJSON(t *testing.T) {
 	var back DataTransferRate
 	require.NoError(t, json.Unmarshal(data, &back))
 	assert.Equal(t, d.Bps(), back.Bps())
+}
+
+// ── YAML ──────────────────────────────────────────────────────────────────────
+
+func TestDataTransferRateMarshalYAML(t *testing.T) {
+	type wrapper struct {
+		Rate DataTransferRate `yaml:"rate"`
+	}
+	w := wrapper{Rate: NewDataTransferRate(750_000_000)}
+	data, err := yaml.Marshal(w)
+	require.NoError(t, err)
+
+	var back wrapper
+	require.NoError(t, yaml.Unmarshal(data, &back))
+	assert.Equal(t, uint64(750_000_000), back.Rate.Bps())
+}
+
+func TestDataTransferRateUnmarshalYAML_Int(t *testing.T) {
+	type wrapper struct{ Rate DataTransferRate `yaml:"rate"` }
+	var w wrapper
+	require.NoError(t, yaml.Unmarshal([]byte("rate: 750000000"), &w))
+	assert.Equal(t, uint64(750_000_000), w.Rate.Bps())
+}
+
+func TestDataTransferRateUnmarshalYAML_String(t *testing.T) {
+	type wrapper struct{ Rate DataTransferRate `yaml:"rate"` }
+	var w wrapper
+	require.NoError(t, yaml.Unmarshal([]byte(`rate: "750Mbps"`), &w))
+	assert.Equal(t, uint64(750_000_000), w.Rate.Bps())
+}
+
+func TestDataTransferRateUnmarshalYAML_Error(t *testing.T) {
+	type wrapper struct{ Rate DataTransferRate `yaml:"rate"` }
+	var w wrapper
+	assert.Error(t, yaml.Unmarshal([]byte("rate: [1,2,3]"), &w))
+}
+
+func TestDataTransferRateUnmarshalYAML_InvalidString(t *testing.T) {
+	type wrapper struct{ Rate DataTransferRate `yaml:"rate"` }
+	var w wrapper
+	assert.Error(t, yaml.Unmarshal([]byte(`rate: "badvalue"`), &w))
+}
+
+// ── TOML ──────────────────────────────────────────────────────────────────────
+
+func TestDataTransferRateMarshalTOML(t *testing.T) {
+	d := NewDataTransferRate(750_000_000)
+	data, err := d.MarshalTOML()
+	require.NoError(t, err)
+	assert.Equal(t, "750000000", string(data))
+}
+
+func TestDataTransferRateUnmarshalTOML_Int64(t *testing.T) {
+	var d DataTransferRate
+	require.NoError(t, d.UnmarshalTOML(int64(750_000_000)))
+	assert.Equal(t, uint64(750_000_000), d.Bps())
+}
+
+func TestDataTransferRateUnmarshalTOML_Float64(t *testing.T) {
+	var d DataTransferRate
+	require.NoError(t, d.UnmarshalTOML(float64(750_000_000)))
+	assert.Equal(t, uint64(750_000_000), d.Bps())
+}
+
+func TestDataTransferRateUnmarshalTOML_String(t *testing.T) {
+	var d DataTransferRate
+	require.NoError(t, d.UnmarshalTOML("750Mbps"))
+	assert.Equal(t, uint64(750_000_000), d.Bps())
+}
+
+func TestDataTransferRateUnmarshalTOML_InvalidString(t *testing.T) {
+	var d DataTransferRate
+	assert.Error(t, d.UnmarshalTOML("bad"))
+}
+
+func TestDataTransferRateUnmarshalTOML_UnsupportedType(t *testing.T) {
+	var d DataTransferRate
+	assert.Error(t, d.UnmarshalTOML(true))
 }

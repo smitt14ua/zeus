@@ -79,7 +79,7 @@ func buildExecutor() *agent.Executor {
 	})
 
 	exec.Register(protocol.CmdProfileList, func(ctx context.Context, args map[string]any, w io.Writer) error {
-		return execProfileList(ctx, w)
+		return execProfileList(ctx, "json", w)
 	})
 
 	exec.Register(protocol.CmdProfileInfo, func(ctx context.Context, args map[string]any, w io.Writer) error {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 )
 
 func TestNewDataSize(t *testing.T) {
@@ -182,4 +183,82 @@ func TestDataSizeMarshalJSON(t *testing.T) {
 	var back DataSize
 	require.NoError(t, json.Unmarshal(data, &back))
 	assert.Equal(t, d.B(), back.B())
+}
+
+// ── YAML ──────────────────────────────────────────────────────────────────────
+
+func TestDataSizeMarshalYAML(t *testing.T) {
+	type wrapper struct {
+		Size DataSize `yaml:"size"`
+	}
+	w := wrapper{Size: NewDataSize(5_000_000)}
+	data, err := yaml.Marshal(w)
+	require.NoError(t, err)
+
+	var back wrapper
+	require.NoError(t, yaml.Unmarshal(data, &back))
+	assert.Equal(t, uint64(5_000_000), back.Size.B())
+}
+
+func TestDataSizeUnmarshalYAML_Int(t *testing.T) {
+	type wrapper struct{ Size DataSize `yaml:"size"` }
+	var w wrapper
+	require.NoError(t, yaml.Unmarshal([]byte("size: 5000000"), &w))
+	assert.Equal(t, uint64(5_000_000), w.Size.B())
+}
+
+func TestDataSizeUnmarshalYAML_String(t *testing.T) {
+	type wrapper struct{ Size DataSize `yaml:"size"` }
+	var w wrapper
+	require.NoError(t, yaml.Unmarshal([]byte(`size: "5MB"`), &w))
+	assert.Equal(t, uint64(5_000_000), w.Size.B())
+}
+
+func TestDataSizeUnmarshalYAML_Error(t *testing.T) {
+	type wrapper struct{ Size DataSize `yaml:"size"` }
+	var w wrapper
+	assert.Error(t, yaml.Unmarshal([]byte("size: [1,2,3]"), &w))
+}
+
+func TestDataSizeUnmarshalYAML_InvalidString(t *testing.T) {
+	type wrapper struct{ Size DataSize `yaml:"size"` }
+	var w wrapper
+	assert.Error(t, yaml.Unmarshal([]byte(`size: "badvalue"`), &w))
+}
+
+// ── TOML ──────────────────────────────────────────────────────────────────────
+
+func TestDataSizeMarshalTOML(t *testing.T) {
+	d := NewDataSize(5_000_000)
+	data, err := d.MarshalTOML()
+	require.NoError(t, err)
+	assert.Equal(t, "5000000", string(data))
+}
+
+func TestDataSizeUnmarshalTOML_Int64(t *testing.T) {
+	var d DataSize
+	require.NoError(t, d.UnmarshalTOML(int64(5_000_000)))
+	assert.Equal(t, uint64(5_000_000), d.B())
+}
+
+func TestDataSizeUnmarshalTOML_Float64(t *testing.T) {
+	var d DataSize
+	require.NoError(t, d.UnmarshalTOML(float64(5_000_000)))
+	assert.Equal(t, uint64(5_000_000), d.B())
+}
+
+func TestDataSizeUnmarshalTOML_String(t *testing.T) {
+	var d DataSize
+	require.NoError(t, d.UnmarshalTOML("5MB"))
+	assert.Equal(t, uint64(5_000_000), d.B())
+}
+
+func TestDataSizeUnmarshalTOML_InvalidString(t *testing.T) {
+	var d DataSize
+	assert.Error(t, d.UnmarshalTOML("bad"))
+}
+
+func TestDataSizeUnmarshalTOML_UnsupportedType(t *testing.T) {
+	var d DataSize
+	assert.Error(t, d.UnmarshalTOML(true))
 }
