@@ -30,6 +30,7 @@ type Client struct {
 	HeartbeatInterval time.Duration
 	ReconnectDelay    time.Duration
 	Executor          *Executor
+	AllowedScopes     []string // nil = all scopes; sent in hello/heartbeat so the panel knows
 
 	mu   sync.Mutex // guards all WebSocket writes
 	conn *websocket.Conn
@@ -136,8 +137,9 @@ func (c *Client) sendResult(id string, success bool, exitCode int, errMsg string
 
 func (c *Client) sendHello() error {
 	return c.writeRaw(protocol.TypeHello, "", protocol.Hello{
-		Agent:       c.Name,
-		ZeusVersion: c.Version,
+		Agent:         c.Name,
+		ZeusVersion:   c.Version,
+		AllowedScopes: c.AllowedScopes,
 	})
 }
 
@@ -150,9 +152,10 @@ func (c *Client) heartbeatLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			c.writeRaw(protocol.TypeHeartbeat, "", protocol.Heartbeat{
-				Agent:       c.Name,
-				ZeusVersion: c.Version,
-				Profiles:    collectProfileStatus(),
+				Agent:         c.Name,
+				ZeusVersion:   c.Version,
+				Profiles:      collectProfileStatus(),
+				AllowedScopes: c.AllowedScopes,
 			})
 		}
 	}

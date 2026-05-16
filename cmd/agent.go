@@ -28,6 +28,7 @@ func runAgent(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("name")
 	heartbeat, _ := cmd.Flags().GetDuration("heartbeat")
 	reconnect, _ := cmd.Flags().GetDuration("reconnect")
+	allowRaw, _ := cmd.Flags().GetString("allow")
 
 	if url == "" {
 		fatalf("--url is required")
@@ -43,7 +44,18 @@ func runAgent(cmd *cobra.Command, args []string) {
 		name = h
 	}
 
+	var allowedScopes []string
+	if allowRaw != "" {
+		for _, s := range strings.Split(allowRaw, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				allowedScopes = append(allowedScopes, s)
+			}
+		}
+	}
+
 	exec := buildExecutor()
+	exec.SetAllowed(protocol.ResolveScopes(allowedScopes))
 
 	client := &agent.Client{
 		URL:               url,
@@ -53,6 +65,7 @@ func runAgent(cmd *cobra.Command, args []string) {
 		HeartbeatInterval: heartbeat,
 		ReconnectDelay:    reconnect,
 		Executor:          exec,
+		AllowedScopes:     allowedScopes,
 	}
 
 	if err := client.Run(cmd.Context()); err != nil && err != context.Canceled {
@@ -121,4 +134,11 @@ func init() {
 	agentCmd.Flags().String("name", "", "agent name shown in the panel (default: hostname)")
 	agentCmd.Flags().Duration("heartbeat", 30*time.Second, "heartbeat interval")
 	agentCmd.Flags().Duration("reconnect", 5*time.Second, "reconnect delay on disconnect")
+	agentCmd.Flags().String("allow", "", `comma-separated scopes this agent accepts (default: all)
+  Scopes: view, control, manage, update, all
+    view    — profile.list, profile.info
+    control — profile.start, profile.stop
+    manage  — profile.new, profile.add, profile.rm, missions.pull
+    update  — update
+  Example: --allow view,control`)
 }

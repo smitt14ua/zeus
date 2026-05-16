@@ -42,6 +42,47 @@ const (
 	FDStderr = "stderr"
 )
 
+// Scope names for the --allow flag on zeus agent.
+// Scopes restrict which commands the agent will accept and execute.
+const (
+	ScopeView    = "view"    // profile.list, profile.info (read-only)
+	ScopeControl = "control" // profile.start, profile.stop
+	ScopeManage  = "manage"  // profile.new, profile.add, profile.rm, missions.pull
+	ScopeUpdate  = "update"  // update
+	ScopeAll     = "all"     // no restrictions (default)
+)
+
+// scopeCommands maps each scope to the commands it covers.
+var scopeCommands = map[string][]string{
+	ScopeView:    {CmdProfileList, CmdProfileInfo},
+	ScopeControl: {CmdProfileStart, CmdProfileStop},
+	ScopeManage:  {CmdProfileNew, CmdProfileAdd, CmdProfileRm, CmdMissionsPull},
+	ScopeUpdate:  {CmdUpdate},
+}
+
+// AllScopes is the ordered list of all named scopes (excluding "all").
+var AllScopes = []string{ScopeView, ScopeControl, ScopeManage, ScopeUpdate}
+
+// ResolveScopes returns a set of allowed command names for the given scope list.
+// Returns nil (allow everything) if scopes is empty or contains ScopeAll.
+func ResolveScopes(scopes []string) map[string]bool {
+	if len(scopes) == 0 {
+		return nil
+	}
+	for _, s := range scopes {
+		if s == ScopeAll {
+			return nil
+		}
+	}
+	allowed := make(map[string]bool)
+	for _, s := range scopes {
+		for _, cmd := range scopeCommands[s] {
+			allowed[cmd] = true
+		}
+	}
+	return allowed
+}
+
 // Envelope is the top-level wrapper for every message in both directions.
 type Envelope struct {
 	ID      string          `json:"id,omitempty"`
@@ -72,15 +113,17 @@ type Result struct {
 
 // Hello is the payload for TypeHello messages (agent → server, sent on connect).
 type Hello struct {
-	Agent       string `json:"agent"`
-	ZeusVersion string `json:"zeus_version"`
+	Agent         string   `json:"agent"`
+	ZeusVersion   string   `json:"zeus_version"`
+	AllowedScopes []string `json:"allowed_scopes,omitempty"` // nil/absent = all commands allowed
 }
 
 // Heartbeat is the payload for TypeHeartbeat messages (agent → server, periodic).
 type Heartbeat struct {
-	Agent       string          `json:"agent"`
-	ZeusVersion string          `json:"zeus_version"`
-	Profiles    []ProfileStatus `json:"profiles"`
+	Agent         string          `json:"agent"`
+	ZeusVersion   string          `json:"zeus_version"`
+	Profiles      []ProfileStatus `json:"profiles"`
+	AllowedScopes []string        `json:"allowed_scopes,omitempty"` // nil/absent = all commands allowed
 }
 
 // ProfileStatus is the per-profile snapshot inside Heartbeat.
