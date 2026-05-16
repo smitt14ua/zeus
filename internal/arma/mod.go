@@ -14,6 +14,11 @@ type Mod struct {
 }
 
 func LoadMod(path string) (Mod, error) {
+	// Resolve symlinks so the canonical path is used and os.ReadDir works on
+	// all platforms (Windows junctions, Linux/macOS symlinks).
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		path = resolved
+	}
 	m := Mod{Path: path}
 
 	entries, err := os.ReadDir(path)
@@ -22,22 +27,24 @@ func LoadMod(path string) (Mod, error) {
 	}
 
 	for _, e := range entries {
-		if !e.IsDir() {
+		entryPath := filepath.Join(path, e.Name())
+		info, statErr := os.Stat(entryPath) // Stat follows symlinks; e.IsDir() does not
+		if statErr != nil || !info.IsDir() {
 			continue
 		}
 		switch strings.ToLower(e.Name()) {
 		case "addons":
-			m.Addons, err = scanFiles(filepath.Join(path, e.Name()), ".pbo", ".ebo")
+			m.Addons, err = scanFiles(entryPath, ".pbo", ".ebo")
 			if err != nil {
 				return m, err
 			}
 		case "keys":
-			m.Keys, err = scanFiles(filepath.Join(path, e.Name()), ".bikey")
+			m.Keys, err = scanFiles(entryPath, ".bikey")
 			if err != nil {
 				return m, err
 			}
 		case "optionals":
-			m.Submods, err = loadSubmods(filepath.Join(path, e.Name()))
+			m.Submods, err = loadSubmods(entryPath)
 			if err != nil {
 				return m, err
 			}
@@ -55,10 +62,15 @@ func loadSubmods(optionalsDir string) ([]Mod, error) {
 
 	var submods []Mod
 	for _, e := range entries {
-		if !e.IsDir() || !strings.HasPrefix(e.Name(), "@") {
+		if !strings.HasPrefix(e.Name(), "@") {
 			continue
 		}
-		sub, err := LoadMod(filepath.Join(optionalsDir, e.Name()))
+		entryPath := filepath.Join(optionalsDir, e.Name())
+		info, err := os.Stat(entryPath) // Stat follows symlinks
+		if err != nil || !info.IsDir() {
+			continue
+		}
+		sub, err := LoadMod(entryPath)
 		if err != nil {
 			return nil, err
 		}

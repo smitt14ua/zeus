@@ -56,8 +56,93 @@ func TestLoadMod_Path(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadMod: %v", err)
 	}
-	if m.Path != root {
-		t.Errorf("Path = %q, want %q", m.Path, root)
+	// t.TempDir() may return a symlink path (e.g. /var/... on macOS); compare resolved forms.
+	want := root
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		want = resolved
+	}
+	if m.Path != want {
+		t.Errorf("Path = %q, want %q", m.Path, want)
+	}
+}
+
+func TestLoadMod_SymlinkedModPath(t *testing.T) {
+	real := t.TempDir()
+	buildModDir(t, real)
+
+	link := filepath.Join(t.TempDir(), "@CBA_A3")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skipf("symlinks not available on this platform: %v", err)
+	}
+
+	m, err := LoadMod(link)
+	if err != nil {
+		t.Fatalf("LoadMod: %v", err)
+	}
+	if len(m.Addons) != 3 {
+		t.Errorf("Addons = %d, want 3", len(m.Addons))
+	}
+	if len(m.Keys) != 1 {
+		t.Errorf("Keys = %d, want 1", len(m.Keys))
+	}
+	if len(m.Submods) != 2 {
+		t.Errorf("Submods = %d, want 2", len(m.Submods))
+	}
+}
+
+func TestLoadMod_SymlinkedSubdirs(t *testing.T) {
+	real := t.TempDir()
+	mkdirAll(t, filepath.Join(real, "addons"))
+	touch(t, filepath.Join(real, "addons", "mod.pbo"))
+	mkdirAll(t, filepath.Join(real, "keys"))
+	touch(t, filepath.Join(real, "keys", "mod.bikey"))
+
+	root := t.TempDir()
+	if err := os.Symlink(filepath.Join(real, "addons"), filepath.Join(root, "addons")); err != nil {
+		t.Skipf("symlinks not available on this platform: %v", err)
+	}
+	if err := os.Symlink(filepath.Join(real, "keys"), filepath.Join(root, "keys")); err != nil {
+		t.Skipf("symlinks not available on this platform: %v", err)
+	}
+
+	m, err := LoadMod(root)
+	if err != nil {
+		t.Fatalf("LoadMod: %v", err)
+	}
+	if len(m.Addons) != 1 {
+		t.Errorf("Addons = %d, want 1", len(m.Addons))
+	}
+	if len(m.Keys) != 1 {
+		t.Errorf("Keys = %d, want 1", len(m.Keys))
+	}
+}
+
+func TestLoadMod_SymlinkedSubmod(t *testing.T) {
+	realSub := t.TempDir()
+	mkdirAll(t, filepath.Join(realSub, "addons"))
+	touch(t, filepath.Join(realSub, "addons", "submod.pbo"))
+	mkdirAll(t, filepath.Join(realSub, "keys"))
+	touch(t, filepath.Join(realSub, "keys", "submod.bikey"))
+
+	root := t.TempDir()
+	mkdirAll(t, filepath.Join(root, "optionals"))
+	link := filepath.Join(root, "optionals", "@submod")
+	if err := os.Symlink(realSub, link); err != nil {
+		t.Skipf("symlinks not available on this platform: %v", err)
+	}
+
+	m, err := LoadMod(root)
+	if err != nil {
+		t.Fatalf("LoadMod: %v", err)
+	}
+	if len(m.Submods) != 1 {
+		t.Errorf("Submods = %d, want 1", len(m.Submods))
+	}
+	if len(m.Submods[0].Addons) != 1 {
+		t.Errorf("Submod addons = %d, want 1", len(m.Submods[0].Addons))
+	}
+	if len(m.Submods[0].Keys) != 1 {
+		t.Errorf("Submod keys = %d, want 1", len(m.Submods[0].Keys))
 	}
 }
 
