@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-16
+
+### Added
+
+- **`optionalkeys` directory** — created alongside `keys` when a profile is added or updated; files placed there by the user are never touched by ZEUS. The folder is automatically appended to `-keysFolder` at server launch so Arma 3 recognises keys for optional mods.
+- **Lifecycle hooks** — profiles can now declare shell commands under a `hooks:` key that execute at nine lifecycle points:
+  - `post_profile_add` — after `zeus profile add` completes
+  - `pre_profile_start` / `post_profile_start` — around `zeus start`
+  - `pre_profile_run` / `post_profile_run` — immediately before/after the server process is spawned
+  - `pre_profile_stop` / `post_profile_stop` — around `zeus stop`
+  - `pre_pull_missions` / `post_pull_missions` — around `zeus missions pull`
+
+  Each command receives `ZEUS_PROFILE`, `ZEUS_PROFILE_DIR`, and `ZEUS_PROFILE_INSTALL_DIR` as environment variables and runs with the profile directory as its working directory. Execution stops on the first non-zero exit.
+
+### Fixed
+
+- Hook commands on Windows are now written to a temporary `.bat` file before execution. The previous `cmd /C "..."` approach caused Go's argument escaping to mangle internal double quotes, breaking commands such as `curl -H "Content-Type: ..."`.
+
 ## [0.1.7] - 2026-05-13
 
 ### CI / Security
@@ -86,7 +104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/smitt14ua/zeus/compare/v0.1.7...v0.2.0
 [0.1.7]: https://github.com/smitt14ua/zeus/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/smitt14ua/zeus/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/smitt14ua/zeus/compare/v0.1.4...v0.1.5
