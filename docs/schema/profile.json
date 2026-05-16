@@ -1,0 +1,958 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/smitt14ua/zeus/main/docs/schema/profile.json",
+  "title": "Zeus Profile",
+  "description": "An Arma 3 dedicated server profile managed by zeus. Profiles are stored as JSON in ~/.zeus/profiles/<name>.json and can be submitted to the agent via the profile.add command.",
+  "type": "object",
+  "required": ["name", "install_dir"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique profile identifier. Used as the storage key and in generated file paths."
+    },
+    "executable": {
+      "type": "string",
+      "description": "Path to the Arma 3 server executable. Defaults to arma3server_x64 (Linux/macOS) or arma3server_x64.exe (Windows) inside install_dir."
+    },
+    "install_dir": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to the Arma 3 installation directory. All generated configs and relative server paths are resolved from here."
+    },
+    "params": {
+      "$ref": "#/$defs/StartupParams",
+      "description": "Arma 3 startup command-line parameters. All fields are optional; omitted fields are not passed to the server."
+    },
+    "config": {
+      "$ref": "#/$defs/ServerConfig",
+      "description": "Arma 3 server.cfg parameters. All fields are optional; omitted fields use Arma 3 engine defaults."
+    },
+    "basic": {
+      "$ref": "#/$defs/BasicServerConfig",
+      "description": "Arma 3 basic.cfg network-tuning parameters. All fields are optional."
+    },
+    "missionSource": {
+      "$ref": "#/$defs/MissionSource",
+      "description": "Optional mission file sync configuration used by missions.pull."
+    },
+    "rcon": {
+      "$ref": "#/$defs/RCon",
+      "description": "BattlEye RCon connection settings written to the BattlEye config file."
+    },
+    "hooks": {
+      "$ref": "#/$defs/ProfileHooks",
+      "description": "Optional ordered shell commands to run at profile lifecycle events. The first failure in a list aborts the remaining commands."
+    }
+  },
+  "$defs": {
+    "DataSize": {
+      "description": "A byte count. Accepts a JSON number (raw bytes) or a string with a unit suffix. Supported suffixes: B, KB, MB, GB, TB, KiB, MiB, GiB, TiB. Examples: 1024, \"5MB\", \"2GiB\".",
+      "oneOf": [
+        { "type": "number", "minimum": 0 },
+        {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?(B|KiB|MiB|GiB|TiB|KB|MB|GB|TB)$"
+        }
+      ]
+    },
+    "DataTransferRate": {
+      "description": "A bandwidth value in bits per second. Accepts a JSON number (raw bps) or a string with a unit suffix. Supported suffixes: bps, Kbps, Mbps, Gbps, Tbps. Examples: 100000000, \"100Mbps\", \"1Gbps\".",
+      "oneOf": [
+        { "type": "number", "minimum": 0 },
+        {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?(bps|Kbps|Mbps|Gbps|Tbps)$"
+        }
+      ]
+    },
+    "FilePatchingMode": {
+      "type": "integer",
+      "enum": [0, 1, 2],
+      "description": "Controls which clients may join with -filePatching. 0=no clients allowed, 1=Headless Clients only, 2=all clients."
+    },
+    "KickSource": {
+      "type": "integer",
+      "enum": [0, 1, 2, 3],
+      "description": "Origin of a kick action for use in kickTimeout. 0=manual (vote kick, admin kick, bruteforce detection), 1=connectivity (ping, timeout, packetloss, desync), 2=BattlEye, 3=harmless (wrong addons, steam timeout/checks, signatures)."
+    },
+    "ChannelID": {
+      "type": "integer",
+      "enum": [0, 1, 2, 3, 4, 5, 16],
+      "description": "Arma 3 communication channel. 0=Global, 1=Side, 2=Command, 3=Group, 4=Vehicle, 5=Direct, 16=System."
+    },
+    "SignatureVerification": {
+      "type": "integer",
+      "enum": [0, 2],
+      "description": "Addon signature checking mode. 0=disabled, 2=v2 .bisign files only accepted."
+    },
+    "VonCodecType": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "Voice over Net audio codec. 0=SPEEX, 1=OPUS."
+    },
+    "ZeusScriptLevel": {
+      "type": "integer",
+      "enum": [0, 1, 2],
+      "description": "Scripts Zeus compositions may execute. 0=forbidden, 1=attributes only (default), 2=all including init scripts."
+    },
+    "RotorLibMode": {
+      "type": "integer",
+      "enum": [0, 1, 2],
+      "description": "Flight model enforced server-side. 0=player choice, 1=Advanced Flight Model forced, 2=Standard Flight Model forced."
+    },
+    "TimestampFormat": {
+      "type": "string",
+      "enum": ["none", "short", "full"],
+      "description": "Format of timestamps in the server RPT log."
+    },
+    "Difficulty": {
+      "type": "string",
+      "enum": ["recruit", "regular", "veteran", "custom"],
+      "description": "Enforced difficulty level."
+    },
+    "HazeQualityLevel": {
+      "type": "integer",
+      "enum": [-1, 0, 1, 2],
+      "description": "Forces haze rendering quality on all MP clients. -1=do not force (default), 0=very low, 1=low, 2=standard."
+    },
+    "KickTimeout": {
+      "type": "object",
+      "required": ["kickID", "timeout"],
+      "additionalProperties": false,
+      "properties": {
+        "kickID": {
+          "$ref": "#/$defs/KickSource"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": -2,
+          "description": "Seconds a kicked player must wait before rejoining. Positive = seconds, -1 = until mission end, -2 = until server restart."
+        }
+      }
+    },
+    "DisabledChannel": {
+      "type": "object",
+      "required": ["channelID"],
+      "additionalProperties": false,
+      "properties": {
+        "channelID": {
+          "$ref": "#/$defs/ChannelID"
+        },
+        "text": {
+          "type": "boolean",
+          "description": "true = disable text chat on this channel."
+        },
+        "voice": {
+          "type": "boolean",
+          "description": "true = disable VON (voice) on this channel."
+        },
+        "mapMarkers": {
+          "type": "boolean",
+          "description": "true = disable manual map markers on this channel."
+        },
+        "drawOnMap": {
+          "type": "boolean",
+          "description": "true = disable Ctrl+LMB map drawing on this channel."
+        }
+      }
+    },
+    "AdvancedOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "logObjectNotFound": {
+          "type": "boolean",
+          "description": "false = skip 'Server: Object not found' log messages. Reduces log noise on large missions."
+        },
+        "skipDescriptionParsing": {
+          "type": "boolean",
+          "description": "true = skip description.ext/mission.sqm parsing; builds the mission list faster but breaks overviewText and similar metadata."
+        },
+        "ignoreMissionLoadErrors": {
+          "type": "boolean",
+          "description": "true = load mission regardless of loading errors; false = abort on errors."
+        },
+        "queueSizeLogG": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Dump player message types to the RPT log when the Guaranteed Queue exceeds this threshold in bytes. 0 = disabled."
+        }
+      }
+    },
+    "AntiFlood": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cycleTime": {
+          "type": "number",
+          "description": "Cycle length in seconds. Every cycle, if a player exceeds cycleLimit messages they are flagged."
+        },
+        "cycleLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Message count per cycle that triggers a flag."
+        },
+        "cycleHardLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Message count that immediately triggers action (kick or log) within one cycle."
+        },
+        "enableKick": {
+          "type": "boolean",
+          "description": "true = kick flagged players; false = log only."
+        }
+      }
+    },
+    "Mission": {
+      "type": "object",
+      "required": ["template", "difficulty"],
+      "additionalProperties": false,
+      "properties": {
+        "customName": {
+          "type": "string",
+          "description": "Class name in the generated server.cfg. Defaults to 'MissionN' (N = 1-based index) if omitted."
+        },
+        "template": {
+          "type": "string",
+          "description": "Mission template in the form 'missionName.terrainName', e.g. 'MP_Marksmen_01.Altis'."
+        },
+        "difficulty": {
+          "$ref": "#/$defs/Difficulty"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "description": "Mission parameter overrides; keys match description.ext parameter names, values are integer indices."
+        }
+      }
+    },
+    "Sockets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxPacketSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum UDP packet size in bytes."
+        }
+      }
+    },
+    "MissionSource": {
+      "type": "object",
+      "required": ["driver"],
+      "additionalProperties": false,
+      "description": "Describes where mission .pbo files are fetched from when running missions.pull.",
+      "properties": {
+        "driver": {
+          "type": "string",
+          "enum": ["path", "s3"],
+          "description": "'path' = local filesystem (copy or symlink). 's3' = Amazon S3 or compatible (e.g. MinIO)."
+        },
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the source mission directory (path driver)."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["copy", "symlink"],
+          "description": "How files are placed in the mpmissions directory. 'copy' (default) copies each .pbo; 'symlink' replaces the entire mpmissions directory with a symlink to path."
+        },
+        "bucket": {
+          "type": "string",
+          "description": "S3 bucket name (s3 driver)."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "S3 key prefix used to scope which objects are synced (s3 driver). Objects outside this prefix are excluded. Only flat objects are synced; keys that still contain '/' after stripping the prefix are skipped."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "S3-compatible endpoint URL (s3 driver), e.g. 'http://localhost:9000' for MinIO."
+        },
+        "region": {
+          "type": "string",
+          "description": "AWS region or S3-compatible region string (s3 driver)."
+        },
+        "accessKeyId": {
+          "type": "string",
+          "description": "S3 access key ID (s3 driver)."
+        },
+        "secretAccessKey": {
+          "type": "string",
+          "description": "S3 secret access key (s3 driver)."
+        }
+      }
+    },
+    "RCon": {
+      "type": "object",
+      "required": ["password", "port"],
+      "additionalProperties": false,
+      "description": "BattlEye RCon settings written to the BattlEye config file at profile registration time.",
+      "properties": {
+        "password": {
+          "type": "string",
+          "description": "RCon password. zeus auto-generates an MD5-based password from the profile name if not set explicitly."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "RCon listen port. zeus defaults to gamePort - 1 (e.g. 2301 when the game port is 2302)."
+        },
+        "ip": {
+          "type": "string",
+          "description": "RCon bind IP address. Defaults to 0.0.0.0 (all interfaces) when omitted."
+        }
+      }
+    },
+    "ProfileHooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Ordered shell commands to run at lifecycle events. Commands in each list run sequentially; the first failure aborts the remaining commands in that list.",
+      "properties": {
+        "prePullMissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run before missions.pull begins."
+        },
+        "postPullMissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run after missions.pull completes successfully."
+        },
+        "postProfileAdd": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run after profile.add completes (after .cfg files are generated)."
+        },
+        "preProfileStart": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run before the server process is launched by profile.start."
+        },
+        "postProfileStart": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run after the server process is launched by profile.start."
+        },
+        "preProfileStop": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run before profile.stop sends the termination signal."
+        },
+        "postProfileStop": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run after the server process has stopped."
+        },
+        "preProfileRun": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run immediately before exec'ing the server binary (inside the runner)."
+        },
+        "postProfileRun": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands run after the server binary exits (inside the runner)."
+        }
+      }
+    },
+    "StartupParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Arma 3 dedicated server startup parameters. Nil/omitted fields are not passed to the server binary.",
+      "properties": {
+        "world": {
+          "type": "string",
+          "description": "World to load on startup. Use 'empty' to disable the default world load."
+        },
+        "worldCfg": {
+          "type": "string",
+          "description": "Path to world config file."
+        },
+        "name": {
+          "type": "string",
+          "description": "Server profile name (used for the Arma 3 profile directory, not the zeus profile name)."
+        },
+        "profiles": {
+          "type": "string",
+          "description": "Path to the Arma 3 profiles folder."
+        },
+        "doNothing": {
+          "type": "boolean",
+          "description": "Start without doing anything; used for testing and diagnostics."
+        },
+        "mod": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Client-side mod folders to load. Sent to connecting clients."
+        },
+        "mpMissions": {
+          "type": "string",
+          "description": "Custom mpmissions folder path relative to the Arma 3 installation directory."
+        },
+        "server": {
+          "type": "boolean",
+          "description": "Run as a dedicated server. Usually implicit when starting via zeus."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Server game port. Default 2302."
+        },
+        "pid": {
+          "type": "string",
+          "description": "Path for the server PID file; the engine removes it automatically on clean exit."
+        },
+        "ranking": {
+          "type": "string",
+          "description": "Path for the server ranking file."
+        },
+        "netlog": {
+          "type": "boolean",
+          "description": "Enable network traffic logging to the RPT log."
+        },
+        "cfg": {
+          "type": "string",
+          "description": "Path to basic.cfg (network performance tuning). zeus sets this automatically from the profile's basic section."
+        },
+        "config": {
+          "type": "string",
+          "description": "Path to server.cfg. zeus sets this automatically from the profile's config section."
+        },
+        "bePath": {
+          "type": "string",
+          "description": "Custom BattlEye folder path. Defaults to the BattlEye subfolder inside the profiles folder."
+        },
+        "ip": {
+          "type": "string",
+          "description": "Bind IP address for multihome servers."
+        },
+        "par": {
+          "type": "string",
+          "description": "Path to a startup parameter config file (-par)."
+        },
+        "loadMissionToMemory": {
+          "type": "boolean",
+          "description": "Load the current mission entirely into memory; reduces mission-change lag."
+        },
+        "autoInit": {
+          "type": "boolean",
+          "description": "Auto-select and start a mission on server startup. Requires persistent=true in server.cfg; breaks mission parameter dialogs."
+        },
+        "serverMod": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Server-side-only mod folders. Not sent to connecting clients."
+        },
+        "disableServerThread": {
+          "type": "boolean",
+          "description": "Disable the server background thread."
+        },
+        "bandwidthAlg": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Networking algorithm variant. Set to 2 to enable the experimental algorithm."
+        },
+        "keysFolder": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Paths to folders containing .bikey files. Use '!keys' as an entry to exclude the default base-game keys folder."
+        },
+        "limitFPS": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 1000,
+          "description": "FPS limit for the dedicated server process. Default 50."
+        },
+        "maxMem": {
+          "type": "integer",
+          "minimum": 1024,
+          "description": "Maximum memory allocation in MiB. Minimum 1024."
+        },
+        "maxFileCacheSize": {
+          "type": "integer",
+          "minimum": 512,
+          "description": "File cache size in MiB. Minimum 512; recommended ≥1024."
+        },
+        "cpuCount": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Override CPU core count detected by the engine (≥2 required since Arma 3 2.20)."
+        },
+        "cpuAffinity": {
+          "type": "string",
+          "description": "Process CPU affinity mask as a hex string, e.g. '0xFF'."
+        },
+        "cpuMainThreadAffinity": {
+          "type": "string",
+          "description": "Main-thread CPU affinity mask as a hex string, e.g. '0x01'."
+        },
+        "enableHT": {
+          "type": "boolean",
+          "description": "Enable logical CPU cores (HyperThreading). Overridden when cpuCount or cpuAffinity is set."
+        },
+        "exThreads": {
+          "type": "integer",
+          "enum": [0, 1, 3, 5, 7],
+          "description": "Extra worker threads bitmask. 0=none, 1=fileOps, 3=tex+file, 5=geo+file, 7=all."
+        },
+        "malloc": {
+          "type": "string",
+          "description": "Custom memory allocator module name."
+        },
+        "hugePages": {
+          "type": "boolean",
+          "description": "Enable huge pages memory allocation (Linux only)."
+        },
+        "debug": {
+          "type": "boolean",
+          "description": "Enable debug mode."
+        },
+        "noFreezeCheck": {
+          "type": "boolean",
+          "description": "Disable the server freeze detection watchdog."
+        },
+        "noLogs": {
+          "type": "boolean",
+          "description": "Disable RPT log output."
+        },
+        "noFilePatching": {
+          "type": "boolean",
+          "description": "Deprecated since Arma 3 1.50. Prefer filePatching."
+        },
+        "filePatching": {
+          "type": "boolean",
+          "description": "Allow loading files from non-signed (unsigned) locations."
+        },
+        "init": {
+          "type": "string",
+          "description": "SQF expression executed on startup."
+        },
+        "autotest": {
+          "type": "string",
+          "description": "Path to an autotest configuration."
+        },
+        "beta": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Beta mod paths. Multiple stacked folders and absolute paths are supported."
+        },
+        "cfgDependenciesDebugPrint": {
+          "type": "boolean",
+          "description": "Print config dependency debug information on startup."
+        },
+        "checkSignatures": {
+          "type": "boolean",
+          "description": "Check addon signatures on load."
+        },
+        "checkSignaturesFull": {
+          "type": "boolean",
+          "description": "Full (strict) signature check mode."
+        },
+        "debugCallExtension": {
+          "type": "boolean",
+          "description": "Log callExtension calls for debugging."
+        },
+        "preprocDefine": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Preprocessor macro definitions. Each entry is 'MACRO' or 'MACRO=VALUE'."
+        },
+        "dumpAddonDependencyGraph": {
+          "type": "boolean",
+          "description": "Dump the addon dependency graph to a file on startup."
+        },
+        "networkDiagInterval": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seconds between network diagnostics log entries."
+        }
+      }
+    },
+    "ServerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Arma 3 server.cfg parameters. All fields are optional. Omitted fields fall back to Arma 3 engine defaults.",
+      "properties": {
+        "passwordAdmin": {
+          "type": "string",
+          "description": "Server admin password."
+        },
+        "password": {
+          "type": "string",
+          "description": "Server join password. Empty = public server."
+        },
+        "serverCommandPassword": {
+          "type": "string",
+          "description": "Password for the #login / serverCommand interface."
+        },
+        "hostname": {
+          "type": "string",
+          "description": "Server name shown in the game browser. Defaults to the local machine name when empty."
+        },
+        "logFile": {
+          "type": "string",
+          "description": "Path to the server log (RPT) file."
+        },
+        "motd": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Message of the Day lines displayed periodically to players."
+        },
+        "motdInterval": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seconds between each MOTD display. Default 5."
+        },
+        "maxPlayers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "description": "Maximum number of players. Default 64."
+        },
+        "admins": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Steam64 IDs of permanent admins."
+        },
+        "headlessClients": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "IP addresses allowed to connect as Headless Clients."
+        },
+        "localClient": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "IP addresses treated as local (no bandwidth restrictions)."
+        },
+        "filePatchingExceptions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Steam64 IDs always allowed to join with -filePatching regardless of allowedFilePatching."
+        },
+        "missionWhitelist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "If non-empty, only missions whose class names appear in this list can be selected."
+        },
+        "voteThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of players required to pass a vote (0.0–1.0). Default 0.5."
+        },
+        "voteMissionPlayers": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum players online before mission voting is enabled. Default 1."
+        },
+        "kickduplicate": {
+          "type": "boolean",
+          "description": "true = kick players who attempt to connect with a duplicate Steam ID."
+        },
+        "loopback": {
+          "type": "boolean",
+          "description": "true = server visible only on localhost (for local testing)."
+        },
+        "upnp": {
+          "type": "boolean",
+          "description": "true = attempt UPnP port forwarding."
+        },
+        "persistent": {
+          "type": "boolean",
+          "description": "true = server stays online between missions (required for autoInit)."
+        },
+        "autoSelectMission": {
+          "type": "boolean",
+          "description": "true = automatically start the first mission in the rotation without waiting for a vote."
+        },
+        "randomMissionOrder": {
+          "type": "boolean",
+          "description": "true = randomize mission rotation order."
+        },
+        "enablePlayerDiag": {
+          "type": "boolean",
+          "description": "true = enable detailed per-player diagnostics in the RPT log."
+        },
+        "allowedFilePatching": {
+          "$ref": "#/$defs/FilePatchingMode"
+        },
+        "allowedLoadFileExtensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "File extensions that scripts may load with loadFile/preprocessFile."
+        },
+        "allowedPreprocessFileExtensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "File extensions that preprocessFile is allowed to process."
+        },
+        "allowedHTMLLoadExtensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "File extensions that createDialog / loadFile may load as HTML."
+        },
+        "allowedHTMLLoadURIs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "URIs that HTML dialogs may load content from."
+        },
+        "maxPing": {
+          "type": "integer",
+          "description": "Maximum allowed client ping in ms. Negative = disabled (no limit). Default -1."
+        },
+        "maxPacketLoss": {
+          "type": "integer",
+          "description": "Maximum allowed packet loss percentage. Negative = disabled. Default -1."
+        },
+        "maxDesync": {
+          "type": "integer",
+          "description": "Maximum allowed desync value. Negative = disabled. Default -1."
+        },
+        "disconnectTimeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 90,
+          "description": "Seconds to wait before disconnecting a player on lost connection. Range 1–90. Default 15."
+        },
+        "kickClientsOnSlowNetwork": {
+          "type": "array",
+          "items": { "type": "integer", "enum": [0, 1] },
+          "minItems": 4,
+          "maxItems": 4,
+          "description": "Per-threshold action array: [maxPing, maxPacketLoss, maxDesync, disconnectTimeout]. 0=log only, 1=kick. Default [1,1,1,1]."
+        },
+        "kickTimeout": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/KickTimeout" },
+          "description": "Per-kick-source reconnect wait times."
+        },
+        "callExtReportLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Warn in the RPT log when callExtension takes longer than this many milliseconds. Default 1000."
+        },
+        "votingTimeOut": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "Mission voting screen timeout in seconds. One value, or [ready, notReady] pair. Default [60, 90]."
+        },
+        "roleTimeOut": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "Role selection screen timeout in seconds. One value, or [ready, notReady] pair. Default [90, 120]."
+        },
+        "briefingTimeOut": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "Briefing screen timeout in seconds. One value, or [ready, notReady] pair. Default [60, 90]."
+        },
+        "debriefingTimeOut": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "Debriefing screen timeout in seconds. One value, or [ready, notReady] pair. Default [45, 60]."
+        },
+        "lobbyIdleTimeout": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum lobby idle time in seconds. At least max(votingTimeout, roleTimeout, briefingTimeout, debriefingTimeout) + 5 s regardless of this setting."
+        },
+        "missionsToServerRestart": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Restart the server process after this many mission ends. 0 = disabled."
+        },
+        "missionsToShutdown": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Shut down the server process after this many mission ends. 0 = disabled."
+        },
+        "missions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Mission" },
+          "description": "Mission rotation list."
+        },
+        "disableChannels": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DisabledChannel" },
+          "description": "Per-channel communication restrictions."
+        },
+        "verifySignatures": {
+          "$ref": "#/$defs/SignatureVerification"
+        },
+        "equalModRequired": {
+          "type": "boolean",
+          "description": "true = clients must have exactly the same mods as the server."
+        },
+        "battleye": {
+          "type": "boolean",
+          "description": "true = enable BattlEye anti-cheat. Default true."
+        },
+        "drawingInMap": {
+          "type": "boolean",
+          "description": "true = allow players to draw on the map. Default true."
+        },
+        "disableVoN": {
+          "type": "boolean",
+          "description": "true = disable Voice over Network globally."
+        },
+        "vonCodecQuality": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "description": "Voice codec quality 0–30. Default 3."
+        },
+        "vonCodec": {
+          "$ref": "#/$defs/VonCodecType"
+        },
+        "skipLobby": {
+          "type": "boolean",
+          "description": "true = skip the lobby screen and go directly to the game."
+        },
+        "allowProfileGlasses": {
+          "type": "boolean",
+          "description": "true = allow players to use their profile's custom glasses. Default true."
+        },
+        "zeusCompositionScriptLevel": {
+          "$ref": "#/$defs/ZeusScriptLevel"
+        },
+        "doubleIdDetected": {
+          "type": "string",
+          "description": "SQF expression executed when a duplicate player ID is detected."
+        },
+        "onUserConnected": {
+          "type": "string",
+          "description": "SQF expression executed when a player connects."
+        },
+        "onUserDisconnected": {
+          "type": "string",
+          "description": "SQF expression executed when a player disconnects."
+        },
+        "onHackedData": {
+          "type": "string",
+          "description": "SQF expression executed when hacked/modified data is detected."
+        },
+        "onDifferentData": {
+          "type": "string",
+          "description": "SQF expression executed when mismatched addon data is detected."
+        },
+        "onUnsignedData": {
+          "type": "string",
+          "description": "SQF expression executed when unsigned addon data is detected."
+        },
+        "onUserKicked": {
+          "type": "string",
+          "description": "SQF expression executed when a player is kicked."
+        },
+        "regularCheck": {
+          "type": "string",
+          "description": "SQF expression executed periodically for server-side integrity checks."
+        },
+        "timeStampFormat": {
+          "$ref": "#/$defs/TimestampFormat"
+        },
+        "forceRotorLibSimulation": {
+          "$ref": "#/$defs/RotorLibMode"
+        },
+        "requiredBuild": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum Arma 3 build number required to join. 0 = no restriction."
+        },
+        "statisticsEnabled": {
+          "type": "boolean",
+          "description": "true = send anonymous server statistics to Bohemia Interactive. Default true."
+        },
+        "forcedDifficulty": {
+          "$ref": "#/$defs/Difficulty",
+          "description": "Force all missions to run at this difficulty level."
+        },
+        "steamProtocolMaxDataSize": {
+          "$ref": "#/$defs/DataSize",
+          "description": "Maximum response payload size for Steam protocol queries. Default 1024 bytes."
+        },
+        "armaUnitsTimeout": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seconds before Arma Units membership check times out. Default 30."
+        },
+        "overrideHazeQuality": {
+          "$ref": "#/$defs/HazeQualityLevel"
+        },
+        "missionHTTPDownloadBaseURL": {
+          "type": "string",
+          "description": "Base URL for HTTP mission downloads. Clients receive mission files via this URL instead of the game protocol."
+        },
+        "advancedOptions": {
+          "$ref": "#/$defs/AdvancedOptions"
+        },
+        "antiFlood": {
+          "$ref": "#/$defs/AntiFlood"
+        }
+      }
+    },
+    "BasicServerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Arma 3 basic.cfg network-tuning parameters. All fields are optional.",
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "Server language identifier, e.g. 'English'. Default 'English'."
+        },
+        "maxMsgSend": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum number of messages sent per simulation step. Default 128."
+        },
+        "maxSizeGuaranteed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum size in bytes of a guaranteed (reliable) network message. Default 512."
+        },
+        "maxSizeNonguaranteed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum size in bytes of a non-guaranteed (unreliable) network message. Default 256."
+        },
+        "minBandwidth": {
+          "$ref": "#/$defs/DataTransferRate",
+          "description": "Minimum bandwidth the server assumes each client has."
+        },
+        "maxBandwidth": {
+          "$ref": "#/$defs/DataTransferRate",
+          "description": "Maximum bandwidth the server will use per client. Default 100Mbps."
+        },
+        "minErrorToSend": {
+          "type": "number",
+          "description": "Minimum positional error (world units) before an update is sent to distant clients. Default 0.001."
+        },
+        "minErrorToSendNear": {
+          "type": "number",
+          "description": "Minimum positional error (world units) before an update is sent to nearby clients. Default 0.01."
+        },
+        "maxCustomFileSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum size in bytes of custom face/sound files players may upload. Default 1024."
+        },
+        "sockets": {
+          "$ref": "#/$defs/Sockets"
+        }
+      }
+    }
+  }
+}

@@ -56,7 +56,7 @@ const (
 var scopeCommands = map[string][]string{
 	ScopeView:    {CmdProfileList, CmdProfileInfo},
 	ScopeControl: {CmdProfileStart, CmdProfileStop},
-	ScopeManage:  {CmdProfileNew, CmdProfileAdd, CmdProfileRm, CmdMissionsPull},
+	ScopeManage:  {CmdProfileAdd, CmdProfileRm, CmdMissionsPull},
 	ScopeUpdate:  {CmdUpdate},
 }
 
