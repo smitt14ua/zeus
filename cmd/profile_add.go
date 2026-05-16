@@ -71,6 +71,11 @@ func runProfileAdd(cmd *cobra.Command, args []string) {
 	if err := writer.Write(p); err != nil {
 		fatal(err)
 	}
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PostProfileAdd, p); err != nil {
+			fatal(err)
+		}
+	}
 	info("profile %q saved. To start it: zeus start %s", p.Name, p.Name)
 }
 

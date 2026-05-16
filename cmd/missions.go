@@ -10,6 +10,7 @@ import (
 
 	"github.com/smitt14ua/zeus/internal/missions"
 	"github.com/smitt14ua/zeus/internal/process"
+	"github.com/smitt14ua/zeus/internal/profile"
 	"github.com/smitt14ua/zeus/internal/storage"
 )
 
@@ -54,6 +55,12 @@ func runMissionsPull(cmd *cobra.Command, args []string) {
 				serverRunning = true
 				break
 			}
+		}
+	}
+
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PrePullMissions, p); err != nil {
+			fatal(err)
 		}
 	}
 
@@ -115,6 +122,12 @@ func runMissionsPull(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Done. %d added, %d updated, %d removed, %d unchanged.\n",
 			len(result.Added), len(result.Updated), len(result.Removed), len(result.Skipped))
+	}
+
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PostPullMissions, p); err != nil {
+			fatal(err)
+		}
 	}
 }
 

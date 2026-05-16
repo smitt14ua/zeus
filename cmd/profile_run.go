@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/smitt14ua/zeus/internal/process"
+	"github.com/smitt14ua/zeus/internal/profile"
 	"github.com/smitt14ua/zeus/internal/storage"
 )
 
@@ -51,8 +52,26 @@ func runProfileStart(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PreProfileStart, p); err != nil {
+			fatal(err)
+		}
+	}
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PreProfileRun, p); err != nil {
+			fatal(err)
+		}
+	}
 	if err := runner.Run(p); err != nil {
 		fatal(err)
+	}
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PostProfileRun, p); err != nil {
+			fatal(err)
+		}
+		if err := profile.RunHooks(p.Hooks.PostProfileStart, p); err != nil {
+			fatal(err)
+		}
 	}
 }
 
@@ -66,6 +85,12 @@ var profileStopCmd = &cobra.Command{
 
 func runProfileStop(cmd *cobra.Command, args []string) {
 	name := args[0]
+
+	repo := storage.ProfileRepository{}
+	p, err := repo.Get(name)
+	if err != nil {
+		fatal(err)
+	}
 
 	mgr := process.Manager{}
 	running, err := mgr.List()
@@ -86,6 +111,11 @@ func runProfileStop(cmd *cobra.Command, args []string) {
 		fatalf("profile %q is not running", name)
 	}
 
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PreProfileStop, p); err != nil {
+			fatal(err)
+		}
+	}
 	if err := mgr.Kill(name); err != nil {
 		fatal(err)
 	}
@@ -96,6 +126,11 @@ func runProfileStop(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("Profile %q stopped.\n", name)
+	if p.Hooks != nil {
+		if err := profile.RunHooks(p.Hooks.PostProfileStop, p); err != nil {
+			fatal(err)
+		}
+	}
 }
 
 func init() {
