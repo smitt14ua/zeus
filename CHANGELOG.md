@@ -7,13 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-16
+
+### Changed
+
+- **`zeus start` / `zeus profile start` now waits for the server to be confirmed running** instead of returning immediately after spawning the process.
+  - Polls for the Arma 3 PID file (written by the server via `-pid=`); uses the direct OS launch PID to fail fast if the process exits before the file appears.
+  - Holds a 3-second stability window after the PID file appears to verify the server hasn't crashed on startup.
+  - Returns an error if the PID file does not appear within the timeout or the process exits during the stability window.
+  - New `--start-timeout` flag controls the wait limit (default `1m0s`).
+  - Post-start hooks (`post_profile_run`, `post_profile_start`) now fire only after startup is confirmed.
+- **Agent default heartbeat interval reduced from 30 s to 1 s** (`--heartbeat` flag).
+- **Agent sends a heartbeat immediately after `hello`** (previously the first heartbeat was delayed by one full interval).
+- **Agent sends a heartbeat after every command result** so the panel receives updated profile/PID state immediately without waiting for the next periodic tick.
+
+### Docs
+
+- `docs/agent-protocol.md`: updated heartbeat timing (immediate + post-command), corrected default interval, added `profile.start` blocking behaviour description.
+- `README.md`: added `zeus agent` command section, `--start-timeout` flag, updated hook lifecycle descriptions.
+
 ## [0.3.0] - 2026-05-16
 
 ### Added
 
 - **`zeus agent`** — new command that connects outbound to a web panel server over WebSocket (WSS), enabling a browser-based panel to list profiles, start/stop servers, stream output, and pull missions without opening inbound ports on the Arma 3 machine.
   - Reconnects automatically after disconnect (configurable delay, default 5 s).
-  - Sends a `hello` on connect and periodic `heartbeat` (default 30 s) carrying profile status and PID.
+  - Sends a `hello` on connect and periodic `heartbeat` carrying profile status and PID.
   - Executes commands concurrently; correlates `stream` / `result` messages back to the originating command via a UUID.
   - Supported remote commands: `profile.list`, `profile.info`, `profile.add`, `profile.start`, `profile.stop`, `profile.rm`, `missions.pull`, `update`.
 - **Scope-based command allowlist (`--allow`)** — restrict which commands the agent accepts. Scopes: `view` (list/info), `control` (start/stop), `manage` (add/rm/missions), `update`, `all` (default). Disallowed commands are rejected immediately with a descriptive error; the agent reports its allowed scopes in every `hello` and `heartbeat` so the panel UI can hide unavailable actions.
@@ -120,7 +139,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/smitt14ua/zeus/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/smitt14ua/zeus/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/smitt14ua/zeus/compare/v0.1.7...v0.2.0
 [0.1.7]: https://github.com/smitt14ua/zeus/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/smitt14ua/zeus/compare/v0.1.5...v0.1.6

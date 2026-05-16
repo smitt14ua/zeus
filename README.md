@@ -93,6 +93,7 @@ These are aliases for their `zeus profile ...` equivalents.
 | `zeus add [file]` | Register or update a profile |
 | `zeus start <name>` | Start a profile |
 | `zeus stop <name>` | Stop a running profile |
+| `zeus agent` | Connect to a remote web panel as a managed agent |
 
 ### Profile management (`zeus profile ...`)
 
@@ -111,6 +112,29 @@ These are aliases for their `zeus profile ...` equivalents.
 | Command | Description |
 |---------|-------------|
 | `zeus missions pull <name>` | Sync `.pbo` mission files from the configured source into the profile's mpmissions directory |
+
+### `zeus agent`
+
+Connect ZEUS to a remote web panel server over an outbound WebSocket (WSS) connection. The panel can then list profiles, start/stop servers, stream output, and pull missions without opening inbound ports on the Arma 3 machine.
+
+```bash
+zeus agent --url wss://panel.example.com/ws/agent --token my-secret
+zeus agent --url wss://panel.example.com/ws/agent --token my-secret --name server-A
+zeus agent --url wss://panel.example.com/ws/agent --token my-secret --allow view,control
+```
+
+| Flag | Description |
+|------|-------------|
+| `--url` | WebSocket URL of the web panel (required) |
+| `--token` | Shared secret token (required) |
+| `--name` | Agent name shown in the panel (default: hostname) |
+| `--heartbeat` | Heartbeat interval (default `1s`) |
+| `--reconnect` | Reconnect delay after disconnect (default `5s`) |
+| `--allow` | Comma-separated scope allowlist: `view`, `control`, `manage`, `update`, `all` (default: all) |
+
+The agent reconnects automatically on disconnect. See [`docs/agent-protocol.md`](docs/agent-protocol.md) for the full protocol specification and server implementation guide.
+
+---
 
 ## Flags
 
@@ -144,9 +168,12 @@ cat server.json | zeus add
 
 ### `start` / `profile start`
 
+`zeus start` blocks until the server is confirmed running: it waits for Arma 3 to write its PID file and then holds a short stability window to ensure the process hasn't crashed immediately. Use `--start-timeout` to control how long it waits.
+
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--dry-run` | `-n` | Print the generated launch command without executing |
+| `--start-timeout` | | How long to wait for the server PID file to appear (default `1m0s`) |
 
 ### `profile info`
 
@@ -260,8 +287,8 @@ Profiles can declare shell commands under a `hooks:` key. Commands run sequentia
 | `post_profile_add` | After `zeus add` / `zeus profile add` completes |
 | `pre_profile_start` | Before the server process is prepared (`zeus start`) |
 | `pre_profile_run` | Immediately before `arma3server_x64` is spawned |
-| `post_profile_run` | Immediately after the server process starts |
-| `post_profile_start` | After `zeus start` completes |
+| `post_profile_run` | After the server process is confirmed running (PID file written and stable) |
+| `post_profile_start` | After `zeus start` completes (server confirmed running) |
 | `pre_profile_stop` | Before the server process is killed (`zeus stop`) |
 | `post_profile_stop` | After the server process has terminated |
 | `pre_pull_missions` | Before `zeus missions pull` fetches files |
