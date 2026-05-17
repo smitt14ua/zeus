@@ -242,6 +242,33 @@ func TestLoadMod_CaseInsensitiveDirs(t *testing.T) {
 	}
 }
 
+func TestLoadMod_KeysNonStandardDir(t *testing.T) {
+	root := t.TempDir()
+
+	// .bikey in a directory not named "keys"
+	mkdirAll(t, filepath.Join(root, "bikeys"))
+	touch(t, filepath.Join(root, "bikeys", "mod.bikey"))
+	mkdirAll(t, filepath.Join(root, "key"))
+	touch(t, filepath.Join(root, "key", "mod2.bikey"))
+
+	// .bikey nested two levels deep — must NOT be collected
+	mkdirAll(t, filepath.Join(root, "optionals", "@sub", "keys"))
+	touch(t, filepath.Join(root, "optionals", "@sub", "keys", "deep.bikey"))
+
+	m, err := LoadMod(root)
+	if err != nil {
+		t.Fatalf("LoadMod: %v", err)
+	}
+	if len(m.Keys) != 2 {
+		t.Errorf("Keys count = %d, want 2; got %v", len(m.Keys), m.Keys)
+	}
+	for _, k := range m.Keys {
+		if filepath.Ext(k) != ".bikey" {
+			t.Errorf("unexpected extension in key path %q", k)
+		}
+	}
+}
+
 func TestLoadMod_EmptyMod(t *testing.T) {
 	root := t.TempDir()
 

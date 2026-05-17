@@ -32,14 +32,17 @@ func LoadMod(path string) (Mod, error) {
 		if statErr != nil || !info.IsDir() {
 			continue
 		}
+
+		// Collect .bikey files from every immediate subdirectory (keys, bikeys, key, etc.).
+		keys, err := scanFiles(entryPath, ".bikey")
+		if err != nil {
+			return m, err
+		}
+		m.Keys = append(m.Keys, keys...)
+
 		switch strings.ToLower(e.Name()) {
 		case "addons":
 			m.Addons, err = scanFiles(entryPath, ".pbo", ".ebo")
-			if err != nil {
-				return m, err
-			}
-		case "keys":
-			m.Keys, err = scanFiles(entryPath, ".bikey")
 			if err != nil {
 				return m, err
 			}
