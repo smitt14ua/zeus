@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-18
+
+### Added
+
+- **`zeus profile start` / `zeus start` rejects port conflicts** — before launching, ZEUS now checks every other running profile's effective game port (from `params.port`, defaulting to `2302`). If any running profile is already bound to the same port, the command exits immediately with a clear error (`profile "X" is already running on port 2302 (PID Y)`) before hooks are run or the process is spawned.
+- **`arma.DefaultPort` constant (`2302`)** — the Arma 3 default game port is now exported from the `arma` package.
+
 ## [0.4.1] - 2026-05-18
 
 ### Fixed
@@ -166,7 +173,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/smitt14ua/zeus/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/smitt14ua/zeus/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/smitt14ua/zeus/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/smitt14ua/zeus/compare/v0.3.1...v0.3.2
