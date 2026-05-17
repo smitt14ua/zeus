@@ -118,8 +118,12 @@ func buildExecutor() *agent.Executor {
 	})
 
 	exec.Register(protocol.CmdUpdate, func(ctx context.Context, args map[string]any, w io.Writer) error {
-		if err := execUpdate(ctx, version, w); err != nil {
+		updated, err := execUpdate(ctx, version, w)
+		if err != nil {
 			return err
+		}
+		if !updated {
+			return nil
 		}
 		fmt.Fprintln(w, "Restarting agent...")
 		return agent.ErrRestartRequested
