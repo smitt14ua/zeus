@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -117,7 +118,11 @@ func buildExecutor() *agent.Executor {
 	})
 
 	exec.Register(protocol.CmdUpdate, func(ctx context.Context, args map[string]any, w io.Writer) error {
-		return execUpdate(ctx, version, w)
+		if err := execUpdate(ctx, version, w); err != nil {
+			return err
+		}
+		fmt.Fprintln(w, "Restarting agent...")
+		return agent.ErrRestartRequested
 	})
 
 	return exec

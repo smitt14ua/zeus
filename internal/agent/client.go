@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -120,12 +121,17 @@ func (c *Client) runCommand(ctx context.Context, id string, cmd protocol.Command
 	err := c.Executor.Dispatch(ctx, cmd.Cmd, cmd.Args, w)
 	_ = w.Close()
 
-	if err != nil {
+	shouldRestart := errors.Is(err, ErrRestartRequested)
+	if err != nil && !shouldRestart {
 		c.sendResult(id, false, 1, err.Error())
 	} else {
 		c.sendResult(id, true, 0, "")
 	}
 	c.sendHeartbeat()
+
+	if shouldRestart {
+		restartSelf()
+	}
 }
 
 func (c *Client) sendResult(id string, success bool, exitCode int, errMsg string) {
