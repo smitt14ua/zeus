@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-18
+
+### Added
+
+- **Agent auto-restarts after a successful `update` command** — when the panel sends `update` and the binary is replaced, the agent now spawns a new process from the updated executable with the original arguments and exits cleanly. The panel sees the agent reconnect at the new version without any manual intervention. The update output stream ends with `"Restarting agent..."` before the result frame is sent.
+
+### Fixed
+
+- **Agent now reconnects after the server temporarily goes away** — the heartbeat goroutine was started with the root context, so when the WebSocket read loop returned on a dropped connection the deferred `<-hbDone` blocked forever and the reconnect loop in `Run` never fired. Fixed by giving the heartbeat goroutine a per-connection context; `cancelConn()` is deferred before `<-hbDone` so the goroutine exits as soon as the connection is lost and `connect` returns promptly for the next retry.
+- **`zeus profile add` finds `.bikey` keys in any immediate mod subdirectory** — keys were previously only collected from a directory named exactly `keys` (case-insensitive). The scanner now checks every first-level subdirectory of the mod folder (`bikeys/`, `key/`, etc.), matching how some mods ship their keys. Subdirectories two levels deep (e.g. `@mod/optionals/@sub/keys/`) are still attributed to their respective submod only.
+
 ## [0.3.2] - 2026-05-16
 
 ### Fixed
