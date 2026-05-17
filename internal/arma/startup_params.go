@@ -1,5 +1,9 @@
 package arma
 
+// DefaultPort is the Arma 3 dedicated server game port used when no explicit
+// port is configured in a profile.
+const DefaultPort uint16 = 2302
+
 // StartupParams holds Arma 3 dedicated server startup parameters.
 // All fields are optional (pointer/slice); nil means the parameter is omitted.
 // Boolean flags (no value) use *bool — nil = omit, true = include, false = omit.

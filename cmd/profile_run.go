@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/smitt14ua/zeus/internal/arma"
 	"github.com/smitt14ua/zeus/internal/process"
 	"github.com/smitt14ua/zeus/internal/profile"
 	"github.com/smitt14ua/zeus/internal/storage"
@@ -48,6 +49,17 @@ func execProfileStart(ctx context.Context, name string, dryRun bool, startTimeou
 	p, err := repo.Get(name)
 	if err != nil {
 		return err
+	}
+
+	wantPort := effectivePort(p)
+	for _, e := range running {
+		other, err := repo.Get(e.Name)
+		if err != nil {
+			continue // stale PID file — skip silently
+		}
+		if effectivePort(other) == wantPort {
+			return fmt.Errorf("profile %q is already running on port %d (PID %d)", e.Name, wantPort, e.PID)
+		}
 	}
 
 	runner := process.Runner{}
@@ -150,6 +162,15 @@ func execProfileStop(ctx context.Context, name string, w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// effectivePort returns the game port for a profile, falling back to the
+// Arma 3 default when the profile does not specify one explicitly.
+func effectivePort(p profile.Profile) uint16 {
+	if p.Params.Port != nil {
+		return *p.Params.Port
+	}
+	return arma.DefaultPort
 }
 
 func init() {
