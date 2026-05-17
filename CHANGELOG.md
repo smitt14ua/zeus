@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-18
+
+### Fixed
+
+- **Agent no longer restarts after `update` when already on the latest version** — `execUpdate` now returns a boolean indicating whether a new binary was actually written. The restart only fires when `true`; an "already up to date" response sends `success: true` and leaves the agent running.
+
+### Docs
+
+- `docs/agent-protocol.md`: documented `update` command behaviour in agent mode (behaviour table, expanded prose, two new sequence diagrams for update+restart and update+no-restart); added connection lifecycle note that the heartbeat goroutine is per-connection scoped; added two rows to the error handling table.
+
 ## [0.4.0] - 2026-05-18
 
 ### Added
@@ -156,7 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/smitt14ua/zeus/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/smitt14ua/zeus/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/smitt14ua/zeus/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/smitt14ua/zeus/compare/v0.3.0...v0.3.1
