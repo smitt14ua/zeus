@@ -157,6 +157,12 @@ configurable (default 5 s). The server should handle reconnects gracefully:
 when an agent with the same name reconnects, update its state rather than
 treating it as a new agent.
 
+The heartbeat goroutine is scoped to each individual connection. When the
+WebSocket read loop exits (server gone, network drop, or agent self-restart),
+the heartbeat stops immediately and the reconnect loop fires without delay.
+
+The agent also reconnects after a successful self-update — see [`update`](#update).
+
 ---
 
 ## Message Reference
@@ -445,6 +451,18 @@ Self-update the zeus binary to the latest release.
 
 **Args:** none
 
+**Behavior in agent mode:**
+
+| Condition | Stream output | Result | After result |
+|-----------|---------------|--------|--------------|
+| Update available | version lines + `"Restarting agent..."` | `success: true` | Agent restarts with new binary |
+| Already up to date | `"Already up to date (X)."` | `success: true` | Nothing — agent keeps running |
+| Error (network, GitHub) | error description | `success: false` | Nothing — agent keeps running |
+
+When an update is applied the agent: sends all stream lines, sends `result` with `success: true`, then spawns a new process from the updated binary using the original startup arguments and exits. The panel should expect a brief disconnect followed by a reconnect carrying the new `zeus_version` in the next `hello`.
+
+**No restart occurs if the agent is already on the latest version.**
+
 ---
 
 ## Scope System
@@ -580,6 +598,41 @@ sequenceDiagram
     Note right of S: broadcasts updated state
 ```
 
+### Update with Auto-Restart
+
+```mermaid
+sequenceDiagram
+    participant S as Server
+    participant A as Agent
+
+    S->>A: command (id=X, cmd=update)
+    Note right of A: detects newer version
+    A->>S: stream (id=X) — "Checking for updates..."
+    A->>S: stream (id=X) — "Update available: 0.4.1 → 0.4.2"
+    A->>S: stream (id=X) — "Updated to 0.4.2. Restart zeus..."
+    A->>S: stream (id=X) — "Restarting agent..."
+    A->>S: result (id=X) — success: true
+    Note over A,S: agent exits, new process starts
+    Note over A: waits reconnect delay
+    A->>S: WebSocket upgrade
+    A->>S: hello (zeus_version: "0.4.2")
+    A->>S: heartbeat
+```
+
+### Update — Already Up to Date (No Restart)
+
+```mermaid
+sequenceDiagram
+    participant S as Server
+    participant A as Agent
+
+    S->>A: command (id=X, cmd=update)
+    Note right of A: already on latest version
+    A->>S: stream (id=X) — "Already up to date (0.4.2)."
+    A->>S: result (id=X) — success: true
+    Note right of A: agent keeps running, no disconnect
+```
+
 ---
 
 ## Error Handling
@@ -592,6 +645,8 @@ sequenceDiagram
 | Command execution error | Returns `result` with `success: false`, `error: <error message>` |
 | WebSocket write failure | Agent closes the connection and reconnects |
 | Server disconnect | Agent waits reconnect delay (default 5 s) then reconnects |
+| `update` — new version applied | Returns `result` with `success: true`, then spawns updated binary and exits |
+| `update` — already up to date | Returns `result` with `success: true`, agent keeps running |
 
 ---
 
