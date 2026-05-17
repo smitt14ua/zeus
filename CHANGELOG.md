@@ -156,7 +156,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/smitt14ua/zeus/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/smitt14ua/zeus/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/smitt14ua/zeus/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/smitt14ua/zeus/compare/v0.2.0...v0.3.0
