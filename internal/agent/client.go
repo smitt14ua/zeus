@@ -75,12 +75,14 @@ func (c *Client) connect(ctx context.Context) error {
 		return err
 	}
 
+	connCtx, cancelConn := context.WithCancel(ctx)
 	hbDone := make(chan struct{})
+	defer func() { <-hbDone }() // wait for heartbeat to stop (registered first, runs second)
+	defer cancelConn()           // stop heartbeat goroutine (registered second, runs first)
 	go func() {
 		defer close(hbDone)
-		c.heartbeatLoop(ctx)
+		c.heartbeatLoop(connCtx)
 	}()
-	defer func() { <-hbDone }()
 
 	return c.readLoop(ctx, conn)
 }
