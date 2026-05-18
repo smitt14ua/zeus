@@ -28,35 +28,46 @@ func (r ProfileRepository) profilesDir() (string, error) {
 }
 
 func (r ProfileRepository) Save(p profile.Profile) error {
+	if err := profile.ValidateName(p.Name); err != nil {
+		return err
+	}
 	dir, err := r.profilesDir()
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 	data, err := json.Marshal(p)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, p.Name+".json"), data, 0644)
+	return os.WriteFile(filepath.Join(dir, p.Name+".json"), data, 0600)
 }
 
 func (r ProfileRepository) Delete(name string) error {
+	if err := profile.ValidateName(name); err != nil {
+		return err
+	}
 	dir, err := r.profilesDir()
 	if err != nil {
 		return err
 	}
+	deleted := 0
 	for _, ext := range []string{".json", ".yaml", ".toml"} {
 		err := os.Remove(filepath.Join(dir, name+ext))
 		if err == nil {
-			return nil
+			deleted++
+			continue
 		}
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 	}
-	return fmt.Errorf("profile %q not found", name)
+	if deleted == 0 {
+		return fmt.Errorf("profile %q not found", name)
+	}
+	return nil
 }
 
 func (r ProfileRepository) List() ([]profile.Profile, error) {
@@ -91,22 +102,28 @@ func (r ProfileRepository) List() ([]profile.Profile, error) {
 }
 
 func (r ProfileRepository) Get(name string) (profile.Profile, error) {
+	if err := profile.ValidateName(name); err != nil {
+		return profile.Profile{}, err
+	}
 	dir, err := r.profilesDir()
 	if err != nil {
 		return profile.Profile{}, err
 	}
 	loader := profile.ProfileLoader{}
 	for _, ext := range []string{".json", ".yaml", ".toml"} {
-		path := filepath.Join(dir, name+ext)
-		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		p, err := loader.FromFile(filepath.Join(dir, name+ext))
+		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
-		return loader.FromFile(path)
+		return p, err
 	}
 	return profile.Profile{}, fmt.Errorf("profile %q not found", name)
 }
 
 func (r ProfileRepository) Exists(name string) (bool, error) {
+	if err := profile.ValidateName(name); err != nil {
+		return false, err
+	}
 	dir, err := r.profilesDir()
 	if err != nil {
 		return false, err

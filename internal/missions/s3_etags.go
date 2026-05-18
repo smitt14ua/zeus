@@ -35,7 +35,7 @@ func saveETags(dir string, etags map[string]string) error {
 		return err
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
 		return err
 	}
 	if err := os.Rename(tmp, path); err != nil {

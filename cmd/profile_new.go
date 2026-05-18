@@ -40,12 +40,15 @@ var profileNewCmd = &cobra.Command{
 }
 
 func execProfileNew(name, format string, w io.Writer) error {
+	if err := profile.ValidateName(name); err != nil {
+		return err
+	}
 	hostname := name + " server"
 	p := profile.Profile{
 		Name:   name,
 		Config: arma.NewDefaultServerConfig(),
 		Basic:  arma.NewDefaultBasicServerConfig(),
-		RCon:   profile.DefaultRCon(name, 2302),
+		RCon:   profile.DefaultRCon(name, arma.DefaultPort),
 	}
 	p.Config.Hostname = &hostname
 	p.Config.Motd = []string{"Welcome to the " + name + " server!"}

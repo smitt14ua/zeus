@@ -242,6 +242,14 @@ func TestDumpServerConfig_DefaultValuesAppear(t *testing.T) {
 	assert.Contains(t, out, `statisticsEnabled = true;`)
 }
 
+func TestDumpServerConfig_StrSliceEscapesQuotes(t *testing.T) {
+	cfg := ServerConfig{}
+	cfg.Motd = []string{`say "hello"`, `line two`}
+	out := string(DumpServerConfig(cfg))
+	assert.Contains(t, out, `"say \"hello\""`, "embedded quotes must be escaped")
+	assert.Contains(t, out, `"line two"`)
+}
+
 // --- BasicServerConfig ---
 
 func TestDumpBasicServerConfig_EmptyProducesEmpty(t *testing.T) {

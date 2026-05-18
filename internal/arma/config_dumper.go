@@ -94,7 +94,7 @@ func (w *cfgWriter) boolean(key string, val bool) {
 func (w *cfgWriter) strSlice(key string, vals []string) {
 	quoted := make([]string, len(vals))
 	for i, v := range vals {
-		quoted[i] = `"` + v + `"`
+		quoted[i] = `"` + strings.ReplaceAll(v, `"`, `\"`) + `"`
 	}
 	w.line(fmt.Sprintf(`%s[] = {%s};`, key, strings.Join(quoted, ", ")))
 }

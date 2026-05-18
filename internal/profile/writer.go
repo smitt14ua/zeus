@@ -24,22 +24,22 @@ func (w ProfileWriter) Write(p Profile) error {
 	dir := filepath.Join(p.InstallDir, ".zeus", p.Name)
 
 	for _, sub := range []string{"configs", "mpmissions", "keys", "optionalkeys", BattleyeDirName()} {
-		if err := os.MkdirAll(filepath.Join(dir, sub), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(dir, sub), 0700); err != nil {
 			return err
 		}
 	}
 
 	cfgDir := filepath.Join(dir, "configs")
-	if err := os.WriteFile(filepath.Join(cfgDir, "server.cfg"), arma.DumpServerConfig(p.Config), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfgDir, "server.cfg"), arma.DumpServerConfig(p.Config), 0600); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(cfgDir, "basic.cfg"), arma.DumpBasicServerConfig(p.Basic), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfgDir, "basic.cfg"), arma.DumpBasicServerConfig(p.Basic), 0600); err != nil {
 		return err
 	}
 
 	rcon := p.RCon
 	if rcon.Password == "" {
-		gamePort := uint16(2302)
+		gamePort := arma.DefaultPort
 		if p.Params.Port != nil {
 			gamePort = *p.Params.Port
 		}
@@ -47,8 +47,8 @@ func (w ProfileWriter) Write(p Profile) error {
 	}
 	beData := DumpBEServerConfig(rcon)
 	beDir := filepath.Join(dir, BattleyeDirName())
-	if err := os.WriteFile(filepath.Join(beDir, "BEServer.cfg"), beData, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(beDir, "BEServer.cfg"), beData, 0600); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(beDir, "BEServer_x64.cfg"), beData, 0644)
+	return os.WriteFile(filepath.Join(beDir, "BEServer_x64.cfg"), beData, 0600)
 }

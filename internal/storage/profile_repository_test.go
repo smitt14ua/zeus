@@ -221,6 +221,39 @@ func TestProfileRepository_Exists_YAML(t *testing.T) {
 	}
 }
 
+func TestProfileRepository_Save_RejectsInvalidName(t *testing.T) {
+	r := newRepo(t)
+	p := profile.Profile{Name: "../../evil", InstallDir: "/opt"}
+	if err := r.Save(p); err == nil {
+		t.Fatal("Save should reject profile with path-traversal name")
+	}
+}
+
+func TestProfileRepository_Get_RejectsInvalidName(t *testing.T) {
+	r := newRepo(t)
+	if _, err := r.Get("../../evil"); err == nil {
+		t.Fatal("Get should reject path-traversal name")
+	}
+}
+
+func TestProfileRepository_Delete_RejectsInvalidName(t *testing.T) {
+	r := newRepo(t)
+	if err := r.Delete("../../evil"); err == nil {
+		t.Fatal("Delete should reject path-traversal name")
+	}
+}
+
+func TestProfileRepository_Exists_RejectsInvalidName(t *testing.T) {
+	r := newRepo(t)
+	exists, err := r.Exists("../../evil")
+	if err == nil {
+		t.Fatal("Exists should reject path-traversal name")
+	}
+	if exists {
+		t.Fatal("Exists should return false for invalid name")
+	}
+}
+
 func TestProfileRepository_Delete_YAML(t *testing.T) {
 	r := newRepo(t)
 	dir, _ := r.profilesDir()

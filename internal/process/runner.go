@@ -100,7 +100,7 @@ func (r Runner) Run(p profile.Profile) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if err := os.MkdirAll(filepath.Join(home, ".zeus", "running"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".zeus", "running"), 0700); err != nil {
 		return 0, err
 	}
 

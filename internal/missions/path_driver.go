@@ -47,15 +47,10 @@ func (d PathDriver) pullSymlink(sourcePath, targetDir string, dryRun bool) (Resu
 		if current == sourcePath {
 			return Result{Symlinked: false}, nil
 		}
-		if !dryRun {
-			if err := os.Remove(targetDir); err != nil {
-				return Result{}, err
-			}
-		}
 	}
 
 	if !dryRun {
-		if err := os.Symlink(sourcePath, targetDir); err != nil {
+		if err := replaceSymlink(sourcePath, targetDir); err != nil {
 			return Result{}, err
 		}
 	}

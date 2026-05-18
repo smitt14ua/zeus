@@ -72,6 +72,10 @@ func execProfileAdd(ctx context.Context, r io.Reader, format, nameOverride strin
 		p.Name = nameOverride
 	}
 
+	if err := p.Validate(); err != nil {
+		return err
+	}
+
 	repo := storage.ProfileRepository{}
 	if exists, _ := repo.Exists(p.Name); exists {
 		fmt.Fprintf(w, "profile %q already exists, updating.\n", p.Name)
