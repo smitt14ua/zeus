@@ -268,9 +268,11 @@ cmd /C "curl -H \"Content-Type: text/plain\" https://example.com"
 ```
 
 **Fix (already in `RunHooks`):** On Windows, each command is written to a temporary
-`.bat` file (`os.CreateTemp("", "zeus-hook-*.bat")`) and run as `cmd /C <file>`. The
-file path passed to `cmd /C` contains no internal quotes, so Go's escaping is harmless.
-The batch file contains the raw command string exactly as written by the user.
+`.bat` file placed in the profile directory (`os.CreateTemp(profileDir, "zeus-hook-*.bat")`)
+and run as `cmd /C <file>`. The file path passed to `cmd /C` contains no internal quotes,
+so Go's escaping is harmless. The batch file contains the raw command string exactly as
+written by the user. Placing the file in the profile directory (which is owned by the
+operator user) avoids shared-temp-dir races on multi-user hosts.
 
 **Implication for hook authors:** Use cmd.exe (batch) syntax in hooks:
 - Env vars: `%ZEUS_PROFILE%` (not `$ZEUS_PROFILE`)
@@ -291,6 +293,38 @@ or deletes its contents.
 Both directories are passed to Arma 3 via `-keysFolder`. The split allows users to keep
 keys for optional mods that are not listed in the profile's `mod:` array without having
 them flagged as "unknown" during `profile add`.
+
+---
+
+## 19. Profile Names Are Validated with an Allowlist Regex
+
+**Trap:** Assuming any string can be a profile name.
+
+`profile.ValidateName` enforces `^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$` and blocks
+Windows-reserved device names (`CON`, `NUL`, `COM1–9`, `LPT1–9`). This prevents
+path traversal (`../../etc/passwd`), hidden-file names (`.hidden`), null bytes,
+and OS-level filename normalization surprises.
+
+Validation runs at all storage entry points (`Save`, `Get`, `Delete`, `Exists`)
+and at CLI boundaries (`profile add`, `profile new`). Adding a new entry point
+that accepts user-supplied profile names must call `ValidateName` or `Validate`.
+
+---
+
+## 20. Symlink Replacement Is Not Atomic on Windows
+
+**Trap:** Expecting `os.Rename(tmpSymlink, targetDir)` to work on Windows.
+
+On POSIX, `rename(2)` atomically replaces an existing symlink with no window where
+the target is absent. On Windows, `MoveFileEx(MOVEFILE_REPLACE_EXISTING)` fails when
+the destination is a directory-typed reparse point (which a directory symlink is).
+
+ZEUS handles this via build-tag-separated implementations:
+- `internal/missions/symlink_unix.go` — atomic POSIX rename
+- `internal/missions/symlink_windows.go` — non-atomic remove + create fallback
+
+Do not merge these into a single file with a `runtime.GOOS` branch; the build-tag
+approach ensures the correct code is compiled without runtime dispatch overhead.
 
 ---
 
