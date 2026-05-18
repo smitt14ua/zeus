@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-18
+
+### Fixed
+
+- **`profile.new` now works in agent mode** — the command was defined in the protocol package and listed in the `manage` scope but had no registered handler in the agent executor. Calling `profile.new` via the panel returned `"unknown command"`. It is now registered and functional.
+- **`manage` scope correctly covers `profile.new`** — the scope enforcement map was missing `profile.new`, so agents running with `--allow manage` would reject the command at the scope-check stage even after the handler was added.
+
+### Docs
+
+- `README.md`: added `profile ls --json` to the flags reference, added a **Profile name rules** section documenting the allowlist regex and reserved-name restrictions, added port-conflict detection note to the `start` description, clarified Windows hook temp-file placement.
+- `docs/agent-protocol.md`: added `profile.new` to the Command Reference and scope table; expanded `profile.start`, `profile.stop`, and `missions.pull` stream output examples to show hook progress messages; clarified `profile.list` returns compact single-line JSON; expanded Table of Contents with per-command anchors.
+
 ## [0.6.0] - 2026-05-18
 
 ### Added
