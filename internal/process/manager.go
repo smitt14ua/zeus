@@ -57,6 +57,9 @@ func (m Manager) List() ([]Entry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid PID in %s: %w", e.Name(), err)
 		}
+		if pid <= 0 {
+			return nil, fmt.Errorf("invalid PID %d in %s", pid, e.Name())
+		}
 		processes = append(processes, Entry{Name: name, PID: pid})
 	}
 	return processes, nil
@@ -133,6 +136,9 @@ func (m Manager) Kill(name string) error {
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
 		return fmt.Errorf("invalid PID in %s.pid: %w", name, err)
+	}
+	if pid <= 0 {
+		return fmt.Errorf("invalid PID %d in %s.pid", pid, name)
 	}
 	proc, err := os.FindProcess(pid)
 	if err != nil {

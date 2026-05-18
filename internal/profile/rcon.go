@@ -3,6 +3,8 @@ package profile
 import (
 	"crypto/md5"
 	"fmt"
+
+	"github.com/smitt14ua/zeus/internal/arma"
 )
 
 type RCon struct {
@@ -12,7 +14,11 @@ type RCon struct {
 }
 
 // DefaultRCon generates RCon defaults: MD5 password from profile name, port = gamePort-1.
+// Falls back to arma3 default game port when gamePort is 0.
 func DefaultRCon(name string, gamePort uint16) RCon {
+	if gamePort == 0 {
+		gamePort = arma.DefaultPort
+	}
 	sum := md5.Sum([]byte(name))
 	return RCon{
 		Password: fmt.Sprintf("%x", sum),

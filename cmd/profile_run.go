@@ -181,7 +181,7 @@ func execProfileStop(ctx context.Context, name string, w io.Writer) error {
 // effectivePort returns the game port for a profile, falling back to the
 // Arma 3 default when the profile does not specify one explicitly.
 func effectivePort(p profile.Profile) uint16 {
-	if p.Params.Port != nil {
+	if p.Params.Port != nil && *p.Params.Port != 0 {
 		return *p.Params.Port
 	}
 	return arma.DefaultPort
