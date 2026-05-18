@@ -100,3 +100,28 @@ func TestManager_KillMissing(t *testing.T) {
 		t.Fatal("expected error killing non-existent PID file")
 	}
 }
+
+func TestManager_List_RejectsNonPositivePID(t *testing.T) {
+	for _, pid := range []int{0, -1} {
+		m := newManager(t)
+		dir := writeRunningDir(t, m)
+		writePIDFile(t, dir, "bad", pid)
+
+		_, err := m.List()
+		if err == nil {
+			t.Fatalf("List should reject PID %d", pid)
+		}
+	}
+}
+
+func TestManager_Kill_RejectsNonPositivePID(t *testing.T) {
+	for _, pid := range []int{0, -1} {
+		m := newManager(t)
+		dir := writeRunningDir(t, m)
+		writePIDFile(t, dir, "bad", pid)
+
+		if err := m.Kill("bad"); err == nil {
+			t.Fatalf("Kill should reject PID %d", pid)
+		}
+	}
+}

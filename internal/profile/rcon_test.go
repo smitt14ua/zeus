@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/smitt14ua/zeus/internal/arma"
 )
 
 func TestDefaultRCon(t *testing.T) {
@@ -37,6 +39,11 @@ func TestDefaultRCon(t *testing.T) {
 		r1 := DefaultRCon("alpha", 2302)
 		r2 := DefaultRCon("beta", 2302)
 		assert.NotEqual(t, r1.Password, r2.Password)
+	})
+
+	t.Run("zero_game_port_uses_default", func(t *testing.T) {
+		r := DefaultRCon("srv", 0)
+		assert.Equal(t, arma.DefaultPort-1, r.Port, "port should be DefaultPort-1, not uint16 underflow")
 	})
 }
 

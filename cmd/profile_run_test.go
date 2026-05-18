@@ -25,6 +25,12 @@ func TestEffectivePort_DefaultWhenNil(t *testing.T) {
 	assert.Equal(t, arma.DefaultPort, effectivePort(profile.Profile{}))
 }
 
+func TestEffectivePort_ZeroTreatedAsDefault(t *testing.T) {
+	port := uint16(0)
+	p := profile.Profile{Params: arma.StartupParams{Port: &port}}
+	assert.Equal(t, arma.DefaultPort, effectivePort(p))
+}
+
 // ── execProfileStart error paths ──────────────────────────────────────────────
 
 func TestExecProfileStart_ProfileNotFound(t *testing.T) {

@@ -92,6 +92,9 @@ func (m Manager) WaitReady(name string, directPID int, pidTimeout, stabilityWind
 			if parseErr != nil {
 				return 0, fmt.Errorf("invalid PID in %s.pid: %w", name, parseErr)
 			}
+			if pid <= 0 {
+				return 0, fmt.Errorf("invalid PID %d in %s.pid", pid, name)
+			}
 			// Stability window: confirm the process hasn't immediately exited.
 			stableUntil := time.Now().Add(stabilityWindow)
 			for time.Now().Before(stableUntil) {

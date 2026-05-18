@@ -40,7 +40,7 @@ func (w ProfileWriter) Write(p Profile) error {
 	rcon := p.RCon
 	if rcon.Password == "" {
 		gamePort := arma.DefaultPort
-		if p.Params.Port != nil {
+		if p.Params.Port != nil && *p.Params.Port != 0 {
 			gamePort = *p.Params.Port
 		}
 		rcon = DefaultRCon(p.Name, gamePort)
