@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-18
+
+### Changed
+
+- **`zeus profile start` now prints progress steps** — the start sequence emits a line at each stage: `Starting profile "…"`, `Launching server process…`, `Process started (launcher PID …), waiting for initialization (timeout …)…`, and `Profile "…" started (PID …)`. When hooks are configured, a `Running pre-start hooks…` / `Running post-start hooks…` line is printed before the relevant hook group runs.
+
 ## [0.5.0] - 2026-05-18
 
 ### Added

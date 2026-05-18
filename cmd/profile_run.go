@@ -73,7 +73,11 @@ func execProfileStart(ctx context.Context, name string, dryRun bool, startTimeou
 		return err
 	}
 
+	fmt.Fprintf(w, "Starting profile %q...\n", name)
 	if p.Hooks != nil {
+		if len(p.Hooks.PreProfileStart) > 0 || len(p.Hooks.PreProfileRun) > 0 {
+			fmt.Fprintf(w, "Running pre-start hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PreProfileStart, p); err != nil {
 			return err
 		}
@@ -81,17 +85,21 @@ func execProfileStart(ctx context.Context, name string, dryRun bool, startTimeou
 			return err
 		}
 	}
+	fmt.Fprintf(w, "Launching server process...\n")
 	directPID, err := runner.Run(p)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "Waiting for profile %q to start (timeout %s)...\n", name, startTimeout)
+	fmt.Fprintf(w, "Process started (launcher PID %d), waiting for initialization (timeout %s)...\n", directPID, startTimeout)
 	pid, err := mgr.WaitReady(name, directPID, startTimeout, startStabilityWindow)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(w, "Profile %q started (PID %d).\n", name, pid)
 	if p.Hooks != nil {
+		if len(p.Hooks.PostProfileRun) > 0 || len(p.Hooks.PostProfileStart) > 0 {
+			fmt.Fprintf(w, "Running post-start hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PostProfileRun, p); err != nil {
 			return err
 		}
