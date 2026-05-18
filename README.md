@@ -146,6 +146,12 @@ The agent reconnects automatically on disconnect. See [`docs/agent-protocol.md`]
 | `--toml` | Output as TOML |
 | `--json` | Output as JSON (default) |
 
+### `profile ls`
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as compact JSON (one line per call) |
+
 ### `add` / `profile add`
 
 Accepts YAML, TOML, or JSON files. Also reads from stdin.
@@ -169,6 +175,8 @@ cat server.json | zeus add
 ### `start` / `profile start`
 
 `zeus start` blocks until the server is confirmed running: it waits for Arma 3 to write its PID file and then holds a short stability window to ensure the process hasn't crashed immediately. Use `--start-timeout` to control how long it waits.
+
+Before launching, ZEUS checks every running profile's effective game port. If another profile is already bound to the same port (default 2302), the command exits immediately with an error before hooks are run or the process is spawned.
 
 | Flag | Short | Description |
 |------|-------|-------------|
@@ -201,6 +209,17 @@ cat server.json | zeus add
 ## Profile format
 
 Profiles are YAML, TOML, or JSON. Generate a template with `zeus new <name> --yaml`.
+
+### Profile name rules
+
+Profile names must match `[A-Za-z0-9][A-Za-z0-9_.-]{0,63}`:
+
+- First character must be a letter or digit (no leading `.` or `-`)
+- Remaining characters: letters, digits, `_`, `.`, `-`
+- Maximum 64 characters
+- Windows reserved device names are rejected cross-platform (`CON`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`)
+
+These restrictions prevent path traversal and OS-level filename normalization issues on both Linux and Windows.
 
 ```yaml
 name: my-server
@@ -309,7 +328,7 @@ The working directory is set to `<install_dir>/.zeus/<name>` (the profile direct
 ### Shell used
 
 - **Linux / macOS:** `sh -c "<command>"`
-- **Windows:** written to a temporary `.bat` file and executed with `cmd /C`
+- **Windows:** written to a temporary `.bat` file in the profile directory and executed with `cmd /C`. Placing it in the profile directory (rather than the shared system temp) avoids quoting issues and multi-user temp-dir races.
 
 ### Examples
 

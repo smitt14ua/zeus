@@ -78,6 +78,14 @@ func runAgent(cmd *cobra.Command, args []string) {
 func buildExecutor() *agent.Executor {
 	exec := agent.NewExecutor()
 
+	exec.Register(protocol.CmdProfileNew, func(ctx context.Context, args map[string]any, w io.Writer) error {
+		format := agent.StringArg(args, "format")
+		if format == "" {
+			format = "json"
+		}
+		return execProfileNew(agent.StringArg(args, "name"), format, w)
+	})
+
 	exec.Register(protocol.CmdProfileAdd, func(ctx context.Context, args map[string]any, w io.Writer) error {
 		content := agent.StringArg(args, "content")
 		format := agent.StringArg(args, "format")
@@ -143,7 +151,7 @@ func init() {
   Scopes: view, control, manage, update, all
     view    — profile.list, profile.info
     control — profile.start, profile.stop
-    manage  — profile.add, profile.rm, missions.pull
+    manage  — profile.new, profile.add, profile.rm, missions.pull
     update  — update
   Example: --allow view,control`)
 }

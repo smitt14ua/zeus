@@ -21,6 +21,15 @@ send commands and receive real-time output and status updates.
    - [result](#result)
    - [ping / pong](#ping--pong)
 7. [Command Reference](#command-reference)
+   - [profile.new](#profilenew)
+   - [profile.list](#profilelist)
+   - [profile.info](#profileinfo)
+   - [profile.add](#profileadd)
+   - [profile.start](#profilestart)
+   - [profile.stop](#profilestop)
+   - [profile.rm](#profilerm)
+   - [missions.pull](#missionspull)
+   - [update](#update)
 8. [Scope System](#scope-system)
 9. [State Snapshot on Connect](#state-snapshot-on-connect)
 10. [Sequence Diagrams](#sequence-diagrams)
@@ -340,18 +349,28 @@ Standard WebSocket-level keepalives are sufficient.
 All commands use the `command` message type. The `cmd` field identifies the
 operation; `args` carries parameters.
 
+### `profile.new`
+
+Generate a default profile template with Arma 3 defaults pre-populated. Useful for a panel editor that presents an empty-but-valid starting point before calling `profile.add`.
+
+| Arg | Type | Required | Description |
+|-----|------|----------|-------------|
+| `name` | string | yes | Profile name for the template. |
+| `format` | string | no | Output format: `json` (default), `yaml`, `toml`. |
+
+**Stream output:** a complete profile template in the requested format, ready to be displayed in an editor or passed back as `content` to `profile.add`.
+
+---
+
 ### `profile.list`
 
-List all saved profiles with their running state. **Always returns JSON output.**
+List all saved profiles with their running state. **Always returns compact JSON (one line).**
 
 **Args:** none
 
-**Stream output (one JSON blob):**
+**Stream output:**
 ```json
-[
-  { "name": "main", "running": true,  "pid": 12345 },
-  { "name": "dev",  "running": false }
-]
+[{"name":"main","running":true,"pid":12345},{"name":"dev","running":false}]
 ```
 
 ---
@@ -406,11 +425,15 @@ Start the Arma 3 server for a profile.
 
 **Stream output (on success):**
 ```
-Waiting for profile "main" to start (timeout 1m0s)...
+Starting profile "main"...
+Running pre-start hooks...      ← only if pre_profile_start or pre_profile_run hooks are configured
+Launching server process...
+Process started (launcher PID 9801), waiting for initialization (timeout 1m0s)...
 Profile "main" started (PID 12345).
+Running post-start hooks...     ← only if post_profile_run or post_profile_start hooks are configured
 ```
 
-Because `profile.start` can take up to 60 s, the panel should keep the command connection open and display streamed progress lines as they arrive.
+`profile.start` can take up to 60 s. The panel should display streamed progress lines as they arrive rather than waiting for the final `result`.
 
 ---
 
@@ -421,6 +444,14 @@ Stop the running Arma 3 server for a profile.
 | Arg | Type | Required | Description |
 |-----|------|----------|-------------|
 | `name` | string | yes | Profile name. |
+
+**Stream output:**
+```
+Running pre-stop hooks...       ← only if pre_profile_stop hooks are configured
+Waiting for process 12345 to terminate...
+Profile "main" stopped.
+Running post-stop hooks...      ← only if post_profile_stop hooks are configured
+```
 
 ---
 
@@ -442,6 +473,21 @@ Sync mission files from the configured source (path copy or S3).
 |-----|------|----------|-------------|
 | `name` | string | yes | Profile name. |
 | `dry_run` | boolean | no | If `true`, report changes without copying files. |
+
+**Stream output:**
+```
+Running pre-pull hooks...                        ← only if pre_pull_missions hooks are configured
+Pulling missions for "main" (path, copy)
+  + new_mission.Altis.pbo                        ← added
+  ~ updated_mission.Stratis.pbo                  ← updated
+  - old_mission.VR.pbo                           ← removed
+  = unchanged_mission.Malden.pbo                 ← skipped (identical)
+  ! locked_mission.Tanoa.pbo                     ← server running, can't replace
+Done. 1 added, 1 updated, 1 removed, 1 unchanged.
+Running post-pull hooks...                       ← only if post_pull_missions hooks are configured
+```
+
+Prefix `[dry-run]` is prepended to the header line when `dry_run` is `true`. Files that cannot be updated because the server is running are marked `!`; stop the server and re-run to apply them.
 
 ---
 
@@ -477,7 +523,7 @@ panel.
 |-------|-------------------|
 | `view` | `profile.list`, `profile.info` |
 | `control` | `profile.start`, `profile.stop` |
-| `manage` | `profile.add`, `profile.rm`, `missions.pull` |
+| `manage` | `profile.new`, `profile.add`, `profile.rm`, `missions.pull` |
 | `update` | `update` |
 | `all` | All commands (default when `--allow` is omitted) |
 

@@ -47,7 +47,7 @@ const (
 const (
 	ScopeView    = "view"    // profile.list, profile.info (read-only)
 	ScopeControl = "control" // profile.start, profile.stop
-	ScopeManage  = "manage"  // profile.new, profile.add, profile.rm, missions.pull
+	ScopeManage  = "manage"  // profile.new, profile.add, profile.rm, missions.pull, profile.info (write operations)
 	ScopeUpdate  = "update"  // update
 	ScopeAll     = "all"     // no restrictions (default)
 )
@@ -56,7 +56,7 @@ const (
 var scopeCommands = map[string][]string{
 	ScopeView:    {CmdProfileList, CmdProfileInfo},
 	ScopeControl: {CmdProfileStart, CmdProfileStop},
-	ScopeManage:  {CmdProfileAdd, CmdProfileRm, CmdMissionsPull},
+	ScopeManage:  {CmdProfileNew, CmdProfileAdd, CmdProfileRm, CmdMissionsPull},
 	ScopeUpdate:  {CmdUpdate},
 }
 
