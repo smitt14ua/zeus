@@ -67,7 +67,7 @@ func execProfileList(ctx context.Context, format string, w io.Writer) error {
 				PID:     pid,
 			})
 		}
-		data, err := json.MarshalIndent(entries, "", "  ")
+		data, err := json.Marshal(entries)
 		if err != nil {
 			return err
 		}
