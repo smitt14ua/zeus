@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-18
+
+### Added
+
+- **Hook progress messages for all hook-bearing commands** — `profile add`, `profile stop`, and `missions pull` now print `Running pre-X hooks…` / `Running post-X hooks…` before each hook group runs, matching the existing behavior in `profile start`.
+- **Profile name validation** — `profile add` and `profile new` now reject names that could cause path traversal (`../../evil`), hidden-file names (`.hidden`), null bytes, names longer than 64 characters, and Windows reserved device names (`CON`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`). Validation runs at both CLI boundaries and storage entry points.
+
+### Changed
+
+- **`zeus profile ls --json` now emits compact JSON** — output is a single line instead of indented multi-line, making it suitable for piping to `jq` and other tools without a `-c` flag.
+- **File permissions hardened** — profile JSON files and generated configs (`server.cfg`, `basic.cfg`, `BEServer.cfg`) are written `0600`; profile and PID directories are created `0700`. Previously `0644`/`0755`.
+- **`profile rm` removes all format variants** — if a profile exists as both `.json` and `.yaml` (e.g. after a manual copy), `profile rm` now removes all matching files instead of stopping after the first hit.
+- **Mission symlink replacement is atomic on POSIX** — the mpmissions directory symlink is now replaced via a sibling-path create + `rename(2)`, eliminating the window where the directory is temporarily absent. Windows uses a safe remove-then-create fallback (atomic rename is not supported for directory reparse points on Windows).
+- **Windows hook `.bat` temp files placed in profile directory** — previously written to the shared system temp (`%TEMP%`), which is writable by all local users. Now written to the profile directory (owned by the operator user).
+
+### Fixed
+
+- **`port: 0` treated as unset** — a profile with `params.port: 0` now falls back to the Arma 3 default (2302) in port-conflict detection (`profile start`) and RCon config generation (`profile add`).
+- **RCon port underflow** — `DefaultRCon` no longer wraps around to 65535 when called with `gamePort = 0`.
+- **PID ≤ 0 rejected in all process operations** — `Manager.List`, `Kill`, and `WaitReady` now return an error if a `.pid` file contains a non-positive value. On Unix, `kill(0, SIGKILL)` signals the entire process group (including the zeus CLI itself); this fix prevents that.
+- **`WaitGone` no longer silently constructs an invalid path** — if the running directory cannot be resolved, it returns `false` immediately instead of joining an empty string with the PID filename.
+- **Profile load errors include the filename** — `ProfileRepository.List` now wraps loader errors with the profile filename, making malformed config files easier to identify.
+- **TOCTOU race eliminated in profile lookup** — `ProfileRepository.Get` previously did a `stat` then `open`; it now calls `loader.FromFile` directly and handles `os.ErrNotExist` from the single open.
+- **Embedded `"` in server.cfg string arrays are escaped** — `motd`, `admins`, and other string-array fields now produce `"say \"hello\""` instead of `"say "hello""` in the generated config.
+
+### Docs
+
+- `docs/ai/common_gotchas.md`: three new entries — profile name validation (#19), Windows symlink non-atomicity (#20), and bat temp file placement (updated #17).
+
 ## [0.5.1] - 2026-05-18
 
 ### Changed
