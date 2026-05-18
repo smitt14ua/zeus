@@ -94,7 +94,7 @@ func (r ProfileRepository) List() ([]profile.Profile, error) {
 		}
 		p, err := loader.FromFile(filepath.Join(dir, name))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("loading profile %s: %w", name, err)
 		}
 		profiles = append(profiles, p)
 	}

@@ -110,7 +110,10 @@ func (m Manager) WaitReady(name string, directPID int, pidTimeout, stabilityWind
 // WaitGone polls until the process with pid is gone and the pid file is deleted.
 // Returns true if both conditions are met within timeout.
 func (m Manager) WaitGone(pid int, name string, timeout time.Duration) bool {
-	dir, _ := m.runningDir()
+	dir, err := m.runningDir()
+	if err != nil {
+		return false
+	}
 	pidFile := filepath.Join(dir, name+".pid")
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
