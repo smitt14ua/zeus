@@ -89,6 +89,9 @@ func execProfileAdd(ctx context.Context, r io.Reader, format, nameOverride strin
 		return err
 	}
 	if p.Hooks != nil {
+		if len(p.Hooks.PostProfileAdd) > 0 {
+			fmt.Fprintf(w, "Running post-add hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PostProfileAdd, p); err != nil {
 			return err
 		}

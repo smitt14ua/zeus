@@ -65,6 +65,9 @@ func execMissionsPull(ctx context.Context, name string, dryRun bool, w io.Writer
 	}
 
 	if p.Hooks != nil {
+		if len(p.Hooks.PrePullMissions) > 0 {
+			fmt.Fprintf(w, "Running pre-pull hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PrePullMissions, p); err != nil {
 			return err
 		}
@@ -131,6 +134,9 @@ func execMissionsPull(ctx context.Context, name string, dryRun bool, w io.Writer
 	}
 
 	if p.Hooks != nil {
+		if len(p.Hooks.PostPullMissions) > 0 {
+			fmt.Fprintf(w, "Running post-pull hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PostPullMissions, p); err != nil {
 			return err
 		}

@@ -151,6 +151,9 @@ func execProfileStop(ctx context.Context, name string, w io.Writer) error {
 	}
 
 	if p.Hooks != nil {
+		if len(p.Hooks.PreProfileStop) > 0 {
+			fmt.Fprintf(w, "Running pre-stop hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PreProfileStop, p); err != nil {
 			return err
 		}
@@ -165,6 +168,9 @@ func execProfileStop(ctx context.Context, name string, w io.Writer) error {
 	}
 	fmt.Fprintf(w, "Profile %q stopped.\n", name)
 	if p.Hooks != nil {
+		if len(p.Hooks.PostProfileStop) > 0 {
+			fmt.Fprintf(w, "Running post-stop hooks...\n")
+		}
 		if err := profile.RunHooks(p.Hooks.PostProfileStop, p); err != nil {
 			return err
 		}
