@@ -706,7 +706,7 @@
         "allowedVoteCmds": {
           "type": "array",
           "items": { "$ref": "#/$defs/VoteCommand" },
-          "description": "Permitted vote commands. Each entry specifies a command name and optional pre/post-mission flags and per-command threshold. Omitting this field uses Arma 3 engine defaults."
+          "description": "Permitted vote commands. Each entry specifies a command name and optional pre/post-mission flags and per-command threshold. An empty array ([]) disables all player vote commands. Omitting this field entirely allows every voting command."
         },
         "allowedVotedAdminCmds": {
           "type": "array",

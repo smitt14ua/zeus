@@ -99,6 +99,9 @@ allowedVotedAdminCmds[] = {
 | 1 — `preMissionStart` | Boolean | `true` | Allow command before the mission starts. |
 | 2 — `postMissionStart` | Boolean | `true` | Allow command after the mission starts. |
 
+> **Note:** `allowedVoteCmds[] = {};` (empty array) disables *all* player vote commands.
+> Omitting `allowedVoteCmds` entirely allows every voting command.
+
 > **Note:** `allowedVotedAdminCmds[] = {};` (empty array) disables *all* voted-admin commands.
 > Omitting `allowedVotedAdminCmds` entirely grants voted-in admins unrestricted access.
 
