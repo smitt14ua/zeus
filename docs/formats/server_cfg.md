@@ -44,8 +44,8 @@ When no `-config` is specified, no server config is loaded (there is no implicit
 |-----------|---------|-------------|
 | `voteThreshold = 0.33;` | `0.5` | Fraction of players needed to confirm a vote. |
 | `voteMissionPlayers = 1;` | `1` | Players required before mission voting starts. |
-| `allowedVoteCmds[] = {...};` | `{}` | Permitted vote commands. |
-| `allowedVotedAdminCmds[] = {...};` | `{}` | Commands available to voted-in admins. |
+| `allowedVoteCmds[] = {...};` | *(see below)* | Permitted vote commands and their thresholds. |
+| `allowedVotedAdminCmds[] = {...};` | *(see below)* | Commands available to voted-in admins. |
 | `kickduplicate = 1;` | `0` | Kick players with duplicate game IDs (`1` = active). |
 | `loopback = 1;` | `false` | Force LAN mode (allows multiple local instances; blocks external). |
 | `upnp = 1;` | `false` | Auto-create UPnP/IGD port mappings. **Warning:** can delay startup by 600s if blocked. |
@@ -56,6 +56,70 @@ When no `-config` is specified, no server config is loaded (there is no implicit
 | `missionsToShutdown = 8;` | `0` | Mission-end events before server process shuts down. |
 | `autoSelectMission = true;` | `false` | Auto-start next mission in cycle without admin. |
 | `randomMissionOrder = true;` | `false` | Randomize mission selection order. |
+
+#### allowedVoteCmds
+
+Controls which vote commands players may initiate and under what conditions.
+Each entry is a positional tuple; trailing optional fields may be omitted.
+
+```cpp
+allowedVoteCmds[] = {
+    // { commandName, preMissionStart, postMissionStart, votingThreshold, percentSideVotingThreshold }
+    { "admin",   true, true },
+    { "kick",    true, true, 0.33 },
+    { "mission", true, true, 0.5,  0.5 }
+};
+```
+
+| Position | Type | Default | Description |
+|----------|------|---------|-------------|
+| 0 — `commandName` | String | *(required)* | Vote command name, e.g. `"admin"`, `"kick"`. |
+| 1 — `preMissionStart` | Boolean | `true` | Allow this vote before the mission starts. |
+| 2 — `postMissionStart` | Boolean | `true` | Allow this vote after the mission starts. |
+| 3 — `votingThreshold` | Number 0–1 | `voteThreshold` value | Per-command override for the fraction of players required. |
+| 4 — `percentSideVotingThreshold` | Number 0–1 | `0.5` | Side-specific vote threshold. *(since Arma 3 1.90+ PerformanceBranch)* |
+
+#### allowedVotedAdminCmds
+
+Controls which admin commands a *voted-in* admin may use.
+
+```cpp
+allowedVotedAdminCmds[] = {
+    { "mission",  true, true },
+    { "missions", true, true },
+    { "restart",  true, true },
+    { "reassign", true, true },
+    { "kick",     true, true }
+};
+```
+
+| Position | Type | Default | Description |
+|----------|------|---------|-------------|
+| 0 — `commandName` | String | *(required)* | Admin command name, e.g. `"kick"`, `"restart"`. |
+| 1 — `preMissionStart` | Boolean | `true` | Allow command before the mission starts. |
+| 2 — `postMissionStart` | Boolean | `true` | Allow command after the mission starts. |
+
+> **Note:** `allowedVotedAdminCmds[] = {};` (empty array) disables *all* voted-admin commands.
+> Omitting `allowedVotedAdminCmds` entirely grants voted-in admins unrestricted access.
+
+In ZEUS profiles the two fields use snake_case keys:
+
+```yaml
+config:
+  allowed_vote_cmds:
+    - name: "admin"
+      pre_mission_start: true
+      post_mission_start: true
+    - name: "kick"
+      voting_threshold: 0.33
+  allowed_voted_admin_cmds:
+    - name: "mission"
+      pre_mission_start: true
+      post_mission_start: true
+    - name: "restart"
+      pre_mission_start: true
+      post_mission_start: true
+```
 
 ### File Access Restrictions
 

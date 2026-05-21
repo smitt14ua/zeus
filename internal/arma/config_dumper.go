@@ -111,6 +111,56 @@ func (w *cfgWriter) uint8Array4(key string, vals [4]uint8) {
 	w.line(fmt.Sprintf(`%s[] = {%d, %d, %d, %d};`, key, vals[0], vals[1], vals[2], vals[3]))
 }
 
+func voteCommandLit(v VoteCommand) string {
+	needsThreshold := v.VotingThreshold != nil || v.PercentSideVotingThreshold != nil
+	needsPre := v.PreMissionStart != nil || v.PostMissionStart != nil || needsThreshold
+
+	parts := []string{`"` + strings.ReplaceAll(v.Name, `"`, `\"`) + `"`}
+	if needsPre {
+		pre := v.PreMissionStart == nil || *v.PreMissionStart
+		post := v.PostMissionStart == nil || *v.PostMissionStart
+		parts = append(parts, boolLit(pre), boolLit(post))
+	}
+	if needsThreshold {
+		threshold := float32(0.5)
+		if v.VotingThreshold != nil {
+			threshold = *v.VotingThreshold
+		}
+		parts = append(parts, fmt.Sprintf("%g", threshold))
+	}
+	if v.PercentSideVotingThreshold != nil {
+		parts = append(parts, fmt.Sprintf("%g", *v.PercentSideVotingThreshold))
+	}
+	return "{" + strings.Join(parts, ", ") + "}"
+}
+
+func (w *cfgWriter) allowedVoteCmds(key string, vals []VoteCommand) {
+	parts := make([]string, len(vals))
+	for i, v := range vals {
+		parts[i] = voteCommandLit(v)
+	}
+	w.line(fmt.Sprintf(`%s[] = {%s};`, key, strings.Join(parts, ", ")))
+}
+
+func votedAdminCommandLit(v VotedAdminCommand) string {
+	needsPre := v.PreMissionStart != nil || v.PostMissionStart != nil
+	parts := []string{`"` + strings.ReplaceAll(v.Name, `"`, `\"`) + `"`}
+	if needsPre {
+		pre := v.PreMissionStart == nil || *v.PreMissionStart
+		post := v.PostMissionStart == nil || *v.PostMissionStart
+		parts = append(parts, boolLit(pre), boolLit(post))
+	}
+	return "{" + strings.Join(parts, ", ") + "}"
+}
+
+func (w *cfgWriter) allowedVotedAdminCmds(key string, vals []VotedAdminCommand) {
+	parts := make([]string, len(vals))
+	for i, v := range vals {
+		parts[i] = votedAdminCommandLit(v)
+	}
+	w.line(fmt.Sprintf(`%s[] = {%s};`, key, strings.Join(parts, ", ")))
+}
+
 func (w *cfgWriter) kickTimeouts(key string, vals []KickTimeout) {
 	parts := make([]string, len(vals))
 	for i, v := range vals {
@@ -234,6 +284,12 @@ func DumpServerConfig(cfg ServerConfig) []byte {
 	}
 	if cfg.VoteMissionPlayers != nil {
 		w.numU16("voteMissionPlayers", *cfg.VoteMissionPlayers)
+	}
+	if cfg.AllowedVoteCmds != nil {
+		w.allowedVoteCmds("allowedVoteCmds", cfg.AllowedVoteCmds)
+	}
+	if cfg.AllowedVotedAdminCmds != nil {
+		w.allowedVotedAdminCmds("allowedVotedAdminCmds", cfg.AllowedVotedAdminCmds)
 	}
 
 	if cfg.KickDuplicate != nil {

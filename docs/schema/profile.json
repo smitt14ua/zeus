@@ -205,6 +205,58 @@
         }
       }
     },
+    "VoteCommand": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "One entry in allowedVoteCmds. Controls which vote commands players may initiate and under what conditions.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Vote command name, e.g. 'admin', 'kick', 'mission'."
+        },
+        "preMissionStart": {
+          "type": "boolean",
+          "description": "Allow this vote before the mission starts. Default true."
+        },
+        "postMissionStart": {
+          "type": "boolean",
+          "description": "Allow this vote after the mission starts. Default true."
+        },
+        "votingThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Per-command fraction of players required to pass the vote (0.0–1.0). Defaults to the top-level voteThreshold value (or 0.5)."
+        },
+        "percentSideVotingThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Side-specific vote threshold (0.0–1.0). Default 0.5. Since Arma 3 1.90+ PerformanceBranch."
+        }
+      }
+    },
+    "VotedAdminCommand": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "description": "One entry in allowedVotedAdminCmds. Controls which admin commands a voted-in admin may use.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Admin command name, e.g. 'mission', 'missions', 'restart', 'reassign', 'kick'."
+        },
+        "preMissionStart": {
+          "type": "boolean",
+          "description": "Allow this command before the mission starts. Default true."
+        },
+        "postMissionStart": {
+          "type": "boolean",
+          "description": "Allow this command after the mission starts. Default true."
+        }
+      }
+    },
     "Mission": {
       "type": "object",
       "required": ["template", "difficulty"],
@@ -650,6 +702,16 @@
           "type": "integer",
           "minimum": 1,
           "description": "Minimum players online before mission voting is enabled. Default 1."
+        },
+        "allowedVoteCmds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/VoteCommand" },
+          "description": "Permitted vote commands. Each entry specifies a command name and optional pre/post-mission flags and per-command threshold. Omitting this field uses Arma 3 engine defaults."
+        },
+        "allowedVotedAdminCmds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/VotedAdminCommand" },
+          "description": "Commands available to voted-in admins. An empty array ([]) disables all voted-admin commands. Omitting this field entirely grants voted-in admins unrestricted access."
         },
         "kickduplicate": {
           "type": "boolean",

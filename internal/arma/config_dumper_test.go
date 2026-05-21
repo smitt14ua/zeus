@@ -242,6 +242,89 @@ func TestDumpServerConfig_DefaultValuesAppear(t *testing.T) {
 	assert.Contains(t, out, `statisticsEnabled = true;`)
 }
 
+func TestDumpServerConfig_AllowedVoteCmds(t *testing.T) {
+	t.Run("name_only", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVoteCmds: []VoteCommand{{Name: "admin"}}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVoteCmds[] = {{"admin"}};`)
+	})
+
+	t.Run("name_and_booleans", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVoteCmds: []VoteCommand{
+			{Name: "admin", PreMissionStart: ptr(true), PostMissionStart: ptr(true)},
+		}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVoteCmds[] = {{"admin", true, true}};`)
+	})
+
+	t.Run("threshold_fills_in_default_pre_post", func(t *testing.T) {
+		threshold := float32(0.33)
+		cfg := ServerConfig{AllowedVoteCmds: []VoteCommand{
+			{Name: "kick", VotingThreshold: &threshold},
+		}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVoteCmds[] = {{"kick", true, true, 0.33}};`)
+	})
+
+	t.Run("with_percent_side_threshold", func(t *testing.T) {
+		threshold := float32(0.33)
+		pct := float32(0.5)
+		cfg := ServerConfig{AllowedVoteCmds: []VoteCommand{
+			{Name: "kick", VotingThreshold: &threshold, PercentSideVotingThreshold: &pct},
+		}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVoteCmds[] = {{"kick", true, true, 0.33, 0.5}};`)
+	})
+
+	t.Run("multiple_entries", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVoteCmds: []VoteCommand{
+			{Name: "admin", PreMissionStart: ptr(true), PostMissionStart: ptr(true)},
+			{Name: "kick", PreMissionStart: ptr(false), PostMissionStart: ptr(true)},
+		}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVoteCmds[] = {{"admin", true, true}, {"kick", false, true}};`)
+	})
+
+	t.Run("empty_slice_emitted", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVoteCmds: []VoteCommand{}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVoteCmds[] = {};`)
+	})
+
+	t.Run("nil_omitted", func(t *testing.T) {
+		out := string(DumpServerConfig(ServerConfig{}))
+		assert.NotContains(t, out, "allowedVoteCmds")
+	})
+}
+
+func TestDumpServerConfig_AllowedVotedAdminCmds(t *testing.T) {
+	t.Run("name_only", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVotedAdminCmds: []VotedAdminCommand{{Name: "mission"}}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVotedAdminCmds[] = {{"mission"}};`)
+	})
+
+	t.Run("with_booleans", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVotedAdminCmds: []VotedAdminCommand{
+			{Name: "mission", PreMissionStart: ptr(true), PostMissionStart: ptr(true)},
+			{Name: "restart", PreMissionStart: ptr(true), PostMissionStart: ptr(true)},
+		}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVotedAdminCmds[] = {{"mission", true, true}, {"restart", true, true}};`)
+	})
+
+	t.Run("empty_slice_disables", func(t *testing.T) {
+		cfg := ServerConfig{AllowedVotedAdminCmds: []VotedAdminCommand{}}
+		out := string(DumpServerConfig(cfg))
+		assert.Contains(t, out, `allowedVotedAdminCmds[] = {};`)
+	})
+
+	t.Run("nil_omitted", func(t *testing.T) {
+		out := string(DumpServerConfig(ServerConfig{}))
+		assert.NotContains(t, out, "allowedVotedAdminCmds")
+	})
+}
+
 func TestDumpServerConfig_StrSliceEscapesQuotes(t *testing.T) {
 	cfg := ServerConfig{}
 	cfg.Motd = []string{`say "hello"`, `line two`}

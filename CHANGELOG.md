@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-05-21
+
+### Added
+
+- **`allowedVoteCmds` and `allowedVotedAdminCmds` in server config** — the two voting control arrays are now supported in profile `config:` sections. `allowedVoteCmds` lets you restrict which vote commands players may initiate and set per-command thresholds; `allowedVotedAdminCmds` controls which admin commands a voted-in admin may use (empty array disables all, omitting the field grants unrestricted access). Both fields are serialised correctly to `server.cfg` with positional tuple syntax. Profile JSON schema and `docs/formats/server_cfg.md` updated with full reference.
+
 ## [0.6.1] - 2026-05-18
 
 ### Fixed

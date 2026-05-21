@@ -494,4 +494,44 @@ missions:
 		require.NoError(t, yaml.Load([]byte(content), &cfg))
 		assert.Empty(t, cfg.Missions)
 	})
+
+	t.Run("vote_commands", func(t *testing.T) {
+		content := `
+allowed_vote_cmds:
+  - name: "admin"
+    pre_mission_start: true
+    post_mission_start: true
+    voting_threshold: 0.33
+  - name: "kick"
+allowed_voted_admin_cmds:
+  - name: "mission"
+    pre_mission_start: true
+    post_mission_start: true
+  - name: "restart"
+`
+		var cfg ServerConfig
+		require.NoError(t, yaml.Load([]byte(content), &cfg))
+
+		require.Len(t, cfg.AllowedVoteCmds, 2)
+		assert.Equal(t, "admin", cfg.AllowedVoteCmds[0].Name)
+		require.NotNil(t, cfg.AllowedVoteCmds[0].PreMissionStart)
+		assert.True(t, *cfg.AllowedVoteCmds[0].PreMissionStart)
+		require.NotNil(t, cfg.AllowedVoteCmds[0].PostMissionStart)
+		assert.True(t, *cfg.AllowedVoteCmds[0].PostMissionStart)
+		require.NotNil(t, cfg.AllowedVoteCmds[0].VotingThreshold)
+		assert.InDelta(t, float32(0.33), *cfg.AllowedVoteCmds[0].VotingThreshold, 0.001)
+		assert.Nil(t, cfg.AllowedVoteCmds[0].PercentSideVotingThreshold)
+		assert.Equal(t, "kick", cfg.AllowedVoteCmds[1].Name)
+		assert.Nil(t, cfg.AllowedVoteCmds[1].PreMissionStart)
+		assert.Nil(t, cfg.AllowedVoteCmds[1].VotingThreshold)
+
+		require.Len(t, cfg.AllowedVotedAdminCmds, 2)
+		assert.Equal(t, "mission", cfg.AllowedVotedAdminCmds[0].Name)
+		require.NotNil(t, cfg.AllowedVotedAdminCmds[0].PreMissionStart)
+		assert.True(t, *cfg.AllowedVotedAdminCmds[0].PreMissionStart)
+		require.NotNil(t, cfg.AllowedVotedAdminCmds[0].PostMissionStart)
+		assert.True(t, *cfg.AllowedVotedAdminCmds[0].PostMissionStart)
+		assert.Equal(t, "restart", cfg.AllowedVotedAdminCmds[1].Name)
+		assert.Nil(t, cfg.AllowedVotedAdminCmds[1].PreMissionStart)
+	})
 }

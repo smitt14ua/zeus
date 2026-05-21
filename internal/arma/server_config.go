@@ -146,6 +146,27 @@ type AntiFlood struct {
 	EnableKick *bool `json:"enableKick,omitempty" yaml:"enable_kick,omitempty" toml:"enable_kick,omitempty"`
 }
 
+// VoteCommand defines one entry in allowedVoteCmds.
+// All fields after Name are optional; omitted fields fall back to Arma 3 defaults.
+// If VotingThreshold or PercentSideVotingThreshold are set, PreMissionStart and
+// PostMissionStart are emitted with their default value (true) when they are nil.
+type VoteCommand struct {
+	Name                       string   `json:"name"                                 yaml:"name"                                    toml:"name"`
+	PreMissionStart            *bool    `json:"preMissionStart,omitempty"            yaml:"pre_mission_start,omitempty"             toml:"pre_mission_start,omitempty"`
+	PostMissionStart           *bool    `json:"postMissionStart,omitempty"           yaml:"post_mission_start,omitempty"            toml:"post_mission_start,omitempty"`
+	VotingThreshold            *float32 `json:"votingThreshold,omitempty"            yaml:"voting_threshold,omitempty"              toml:"voting_threshold,omitempty"`
+	PercentSideVotingThreshold *float32 `json:"percentSideVotingThreshold,omitempty" yaml:"percent_side_voting_threshold,omitempty" toml:"percent_side_voting_threshold,omitempty"`
+}
+
+// VotedAdminCommand defines one entry in allowedVotedAdminCmds.
+// PreMissionStart and PostMissionStart are optional; omitted fields are emitted
+// only when at least one of them is non-nil.
+type VotedAdminCommand struct {
+	Name             string `json:"name"                        yaml:"name"                         toml:"name"`
+	PreMissionStart  *bool  `json:"preMissionStart,omitempty"   yaml:"pre_mission_start,omitempty"  toml:"pre_mission_start,omitempty"`
+	PostMissionStart *bool  `json:"postMissionStart,omitempty"  yaml:"post_mission_start,omitempty" toml:"post_mission_start,omitempty"`
+}
+
 // Mission defines a single entry in the server mission rotation.
 // Template and Difficulty are required; CustomName and Params are optional.
 type Mission struct {
@@ -186,8 +207,10 @@ type ServerConfig struct {
 	MissionWhitelist       []string `json:"missionWhitelist,omitempty"        yaml:"mission_whitelist,omitempty"         toml:"mission_whitelist,omitempty"`
 
 	// --- Voting ---
-	VoteThreshold      *float32 `json:"voteThreshold,omitempty"      yaml:"vote_threshold,omitempty"       toml:"vote_threshold,omitempty"`
-	VoteMissionPlayers *uint16  `json:"voteMissionPlayers,omitempty" yaml:"vote_mission_players,omitempty" toml:"vote_mission_players,omitempty"`
+	VoteThreshold         *float32             `json:"voteThreshold,omitempty"         yaml:"vote_threshold,omitempty"          toml:"vote_threshold,omitempty"`
+	VoteMissionPlayers    *uint16              `json:"voteMissionPlayers,omitempty"    yaml:"vote_mission_players,omitempty"    toml:"vote_mission_players,omitempty"`
+	AllowedVoteCmds       []VoteCommand        `json:"allowedVoteCmds,omitempty"       yaml:"allowed_vote_cmds,omitempty"       toml:"allowed_vote_cmds,omitempty"`
+	AllowedVotedAdminCmds []VotedAdminCommand  `json:"allowedVotedAdminCmds,omitempty" yaml:"allowed_voted_admin_cmds,omitempty" toml:"allowed_voted_admin_cmds,omitempty"`
 
 	// --- Server behaviour ---
 	KickDuplicate      *bool `json:"kickduplicate,omitempty"       yaml:"kickduplicate,omitempty"         toml:"kickduplicate,omitempty"`
