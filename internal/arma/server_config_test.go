@@ -329,6 +329,8 @@ on_hacked_data: "kick (_this select 0)"
 on_unsigned_data: "kick (_this select 0)"
 on_user_connected: ""
 on_different_data: ""
+on_player_join_attempt: "ACCEPT"
+send_chat_message: "Welcome to the server!"
 `
 		var cfg ServerConfig
 		require.NoError(t, yaml.Load([]byte(content), &cfg))
@@ -343,6 +345,10 @@ on_different_data: ""
 		assert.Empty(t, *cfg.OnUserConnected)
 		require.NotNil(t, cfg.OnDifferentData)
 		assert.Empty(t, *cfg.OnDifferentData)
+		require.NotNil(t, cfg.OnPlayerJoinAttempt)
+		assert.Equal(t, "ACCEPT", *cfg.OnPlayerJoinAttempt)
+		require.NotNil(t, cfg.SendChatMessage)
+		assert.Equal(t, "Welcome to the server!", *cfg.SendChatMessage)
 	})
 
 	t.Run("misc_fields", func(t *testing.T) {

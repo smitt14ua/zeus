@@ -281,6 +281,10 @@ type ServerConfig struct {
 	OnUnsignedData     *string `json:"onUnsignedData,omitempty"     yaml:"on_unsigned_data,omitempty"     toml:"on_unsigned_data,omitempty"`
 	OnUserKicked       *string `json:"onUserKicked,omitempty"       yaml:"on_user_kicked,omitempty"       toml:"on_user_kicked,omitempty"`
 	RegularCheck       *string `json:"regularCheck,omitempty"       yaml:"regular_check,omitempty"        toml:"regular_check,omitempty"`
+	// Called repeatedly while a player attempts to join. Must return "ACCEPT", "DELAY", or "REFUSE[_<message>]".
+	OnPlayerJoinAttempt *string `json:"onPlayerJoinAttempt,omitempty" yaml:"on_player_join_attempt,omitempty" toml:"on_player_join_attempt,omitempty"`
+	// Sends a "System" chat message to the specified user.
+	SendChatMessage *string `json:"sendChatMessage,omitempty" yaml:"send_chat_message,omitempty" toml:"send_chat_message,omitempty"`
 
 	// --- Misc ---
 	TimeStampFormat            *TimestampFormat  `json:"timeStampFormat,omitempty"            yaml:"time_stamp_format,omitempty"              toml:"time_stamp_format,omitempty"`

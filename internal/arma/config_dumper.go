@@ -438,6 +438,12 @@ func DumpServerConfig(cfg ServerConfig) []byte {
 	if cfg.RegularCheck != nil {
 		w.str("regularCheck", *cfg.RegularCheck)
 	}
+	if cfg.OnPlayerJoinAttempt != nil {
+		w.str("onPlayerJoinAttempt", *cfg.OnPlayerJoinAttempt)
+	}
+	if cfg.SendChatMessage != nil {
+		w.str("sendChatMessage", *cfg.SendChatMessage)
+	}
 
 	if cfg.TimeStampFormat != nil {
 		w.str("timeStampFormat", string(*cfg.TimeStampFormat))

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-05-22
+
+### Added
+
+- **`onPlayerJoinAttempt` in server config** — new scripting hook called repeatedly while a player is trying to join the server. The SQF expression must return `"ACCEPT"` (let the player in), `"DELAY"` (keep on loading screen), or `"REFUSE"` / `"REFUSE_<message>"` (kick with optional reason). Profile JSON schema and `docs/formats/server_cfg.md` updated.
+- **`sendChatMessage` in server config** — new scripting hook that sends a "System" chat message to the specified user. Profile JSON schema and `docs/formats/server_cfg.md` updated.
+
 ## [0.6.2] - 2026-05-21
 
 ### Added

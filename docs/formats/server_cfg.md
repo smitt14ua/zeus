@@ -228,6 +228,8 @@ These are SQF commands executed on specific events. Assign a string containing S
 | `onDifferentData = "command";` | Valid signature but wrong version |
 | `onUnsignedData = "command";` | Unsigned data detected |
 | `regularCheck = "command";` | Periodic check |
+| `onPlayerJoinAttempt = "command";` | Called repeatedly while a player is joining. Must return `"ACCEPT"`, `"DELAY"`, or `"REFUSE"` (optionally `"REFUSE_<message>"`). |
+| `sendChatMessage = "command";` | Send a "System" chat message to a specified user. |
 
 ### AdvancedOptions Class *(since 2.02)*
 

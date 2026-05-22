@@ -923,6 +923,14 @@
           "type": "string",
           "description": "SQF expression executed periodically for server-side integrity checks."
         },
+        "onPlayerJoinAttempt": {
+          "type": "string",
+          "description": "SQF expression called repeatedly while a player is joining. Must return \"ACCEPT\", \"DELAY\", or \"REFUSE\" (optionally \"REFUSE_<message>\" to include a kick reason)."
+        },
+        "sendChatMessage": {
+          "type": "string",
+          "description": "SQF expression that sends a \"System\" chat message to the specified user."
+        },
         "timeStampFormat": {
           "$ref": "#/$defs/TimestampFormat"
         },
