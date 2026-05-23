@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-05-23
+
+### Fixed
+
+- **`allowedVoteCmds` and `allowedVotedAdminCmds` are now truly nullable** — the two fields were previously typed as plain Go slices, so an explicitly-set empty array (`[]`) was indistinguishable from an absent field after a JSON/YAML/TOML round-trip (both serialised as the same omitted key). They are now pointer-to-slice (`*[]VoteCommand` / `*[]VotedAdminCommand`): a `nil` pointer means the field was never set (Arma uses engine defaults — all commands allowed), while a non-nil pointer to an empty slice means the user explicitly wrote `[]` (no commands allowed). The cfg-file output and documented behaviour are unchanged; this only corrects persistence.
+
 ## [0.6.3] - 2026-05-22
 
 ### Added

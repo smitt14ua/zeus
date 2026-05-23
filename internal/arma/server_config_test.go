@@ -518,26 +518,52 @@ allowed_voted_admin_cmds:
 		var cfg ServerConfig
 		require.NoError(t, yaml.Load([]byte(content), &cfg))
 
-		require.Len(t, cfg.AllowedVoteCmds, 2)
-		assert.Equal(t, "admin", cfg.AllowedVoteCmds[0].Name)
-		require.NotNil(t, cfg.AllowedVoteCmds[0].PreMissionStart)
-		assert.True(t, *cfg.AllowedVoteCmds[0].PreMissionStart)
-		require.NotNil(t, cfg.AllowedVoteCmds[0].PostMissionStart)
-		assert.True(t, *cfg.AllowedVoteCmds[0].PostMissionStart)
-		require.NotNil(t, cfg.AllowedVoteCmds[0].VotingThreshold)
-		assert.InDelta(t, float32(0.33), *cfg.AllowedVoteCmds[0].VotingThreshold, 0.001)
-		assert.Nil(t, cfg.AllowedVoteCmds[0].PercentSideVotingThreshold)
-		assert.Equal(t, "kick", cfg.AllowedVoteCmds[1].Name)
-		assert.Nil(t, cfg.AllowedVoteCmds[1].PreMissionStart)
-		assert.Nil(t, cfg.AllowedVoteCmds[1].VotingThreshold)
+		require.NotNil(t, cfg.AllowedVoteCmds)
+		cmds := *cfg.AllowedVoteCmds
+		require.Len(t, cmds, 2)
+		assert.Equal(t, "admin", cmds[0].Name)
+		require.NotNil(t, cmds[0].PreMissionStart)
+		assert.True(t, *cmds[0].PreMissionStart)
+		require.NotNil(t, cmds[0].PostMissionStart)
+		assert.True(t, *cmds[0].PostMissionStart)
+		require.NotNil(t, cmds[0].VotingThreshold)
+		assert.InDelta(t, float32(0.33), *cmds[0].VotingThreshold, 0.001)
+		assert.Nil(t, cmds[0].PercentSideVotingThreshold)
+		assert.Equal(t, "kick", cmds[1].Name)
+		assert.Nil(t, cmds[1].PreMissionStart)
+		assert.Nil(t, cmds[1].VotingThreshold)
 
-		require.Len(t, cfg.AllowedVotedAdminCmds, 2)
-		assert.Equal(t, "mission", cfg.AllowedVotedAdminCmds[0].Name)
-		require.NotNil(t, cfg.AllowedVotedAdminCmds[0].PreMissionStart)
-		assert.True(t, *cfg.AllowedVotedAdminCmds[0].PreMissionStart)
-		require.NotNil(t, cfg.AllowedVotedAdminCmds[0].PostMissionStart)
-		assert.True(t, *cfg.AllowedVotedAdminCmds[0].PostMissionStart)
-		assert.Equal(t, "restart", cfg.AllowedVotedAdminCmds[1].Name)
-		assert.Nil(t, cfg.AllowedVotedAdminCmds[1].PreMissionStart)
+		require.NotNil(t, cfg.AllowedVotedAdminCmds)
+		adminCmds := *cfg.AllowedVotedAdminCmds
+		require.Len(t, adminCmds, 2)
+		assert.Equal(t, "mission", adminCmds[0].Name)
+		require.NotNil(t, adminCmds[0].PreMissionStart)
+		assert.True(t, *adminCmds[0].PreMissionStart)
+		require.NotNil(t, adminCmds[0].PostMissionStart)
+		assert.True(t, *adminCmds[0].PostMissionStart)
+		assert.Equal(t, "restart", adminCmds[1].Name)
+		assert.Nil(t, adminCmds[1].PreMissionStart)
+	})
+
+	t.Run("vote_commands_empty_disables_all", func(t *testing.T) {
+		content := `
+allowed_vote_cmds: []
+allowed_voted_admin_cmds: []
+`
+		var cfg ServerConfig
+		require.NoError(t, yaml.Load([]byte(content), &cfg))
+
+		require.NotNil(t, cfg.AllowedVoteCmds, "empty array must yield non-nil pointer")
+		assert.Empty(t, *cfg.AllowedVoteCmds)
+		require.NotNil(t, cfg.AllowedVotedAdminCmds, "empty array must yield non-nil pointer")
+		assert.Empty(t, *cfg.AllowedVotedAdminCmds)
+	})
+
+	t.Run("vote_commands_absent_yields_nil", func(t *testing.T) {
+		var cfg ServerConfig
+		require.NoError(t, yaml.Load([]byte(`max_players: 32`), &cfg))
+
+		assert.Nil(t, cfg.AllowedVoteCmds, "absent key must yield nil pointer")
+		assert.Nil(t, cfg.AllowedVotedAdminCmds, "absent key must yield nil pointer")
 	})
 }

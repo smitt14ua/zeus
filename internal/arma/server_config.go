@@ -209,8 +209,10 @@ type ServerConfig struct {
 	// --- Voting ---
 	VoteThreshold         *float32             `json:"voteThreshold,omitempty"         yaml:"vote_threshold,omitempty"          toml:"vote_threshold,omitempty"`
 	VoteMissionPlayers    *uint16              `json:"voteMissionPlayers,omitempty"    yaml:"vote_mission_players,omitempty"    toml:"vote_mission_players,omitempty"`
-	AllowedVoteCmds       []VoteCommand        `json:"allowedVoteCmds,omitempty"       yaml:"allowed_vote_cmds,omitempty"       toml:"allowed_vote_cmds,omitempty"`
-	AllowedVotedAdminCmds []VotedAdminCommand  `json:"allowedVotedAdminCmds,omitempty" yaml:"allowed_voted_admin_cmds,omitempty" toml:"allowed_voted_admin_cmds,omitempty"`
+	// nil = omitted (Arma uses engine defaults); &[]VoteCommand{} = empty array (all commands disabled)
+	AllowedVoteCmds *[]VoteCommand `json:"allowedVoteCmds,omitempty" yaml:"allowed_vote_cmds,omitempty" toml:"allowed_vote_cmds,omitempty"`
+	// nil = omitted (Arma uses engine defaults); &[]VotedAdminCommand{} = empty array (all commands disabled)
+	AllowedVotedAdminCmds *[]VotedAdminCommand `json:"allowedVotedAdminCmds,omitempty" yaml:"allowed_voted_admin_cmds,omitempty" toml:"allowed_voted_admin_cmds,omitempty"`
 
 	// --- Server behaviour ---
 	KickDuplicate      *bool `json:"kickduplicate,omitempty"       yaml:"kickduplicate,omitempty"         toml:"kickduplicate,omitempty"`

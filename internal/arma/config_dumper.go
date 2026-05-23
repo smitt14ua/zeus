@@ -286,10 +286,10 @@ func DumpServerConfig(cfg ServerConfig) []byte {
 		w.numU16("voteMissionPlayers", *cfg.VoteMissionPlayers)
 	}
 	if cfg.AllowedVoteCmds != nil {
-		w.allowedVoteCmds("allowedVoteCmds", cfg.AllowedVoteCmds)
+		w.allowedVoteCmds("allowedVoteCmds", *cfg.AllowedVoteCmds)
 	}
 	if cfg.AllowedVotedAdminCmds != nil {
-		w.allowedVotedAdminCmds("allowedVotedAdminCmds", cfg.AllowedVotedAdminCmds)
+		w.allowedVotedAdminCmds("allowedVotedAdminCmds", *cfg.AllowedVotedAdminCmds)
 	}
 
 	if cfg.KickDuplicate != nil {
