@@ -1,12 +1,41 @@
 package arma
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 )
+
+func TestAllowedVoteCmds_JSONMarshalNilVsEmpty(t *testing.T) {
+	empty := []VoteCommand{}
+	cfg := ServerConfig{AllowedVoteCmds: &empty}
+	data, err := json.Marshal(cfg)
+	require.NoError(t, err)
+	t.Logf("JSON: %s", string(data))
+	assert.Contains(t, string(data), `"allowedVoteCmds":[]`)
+}
+
+func TestAllowedVoteCmds_YAMLMarshalNilVsEmpty(t *testing.T) {
+	empty := []VoteCommand{}
+	cfg := ServerConfig{AllowedVoteCmds: &empty}
+	data, err := yaml.Marshal(cfg)
+	require.NoError(t, err)
+	t.Logf("YAML: %s", string(data))
+	assert.Contains(t, string(data), `allowed_vote_cmds: []`)
+}
+
+func TestAllowedVoteCmds_YAMLUnmarshalEmptyViaUnmarshal(t *testing.T) {
+	// Verify yaml.Unmarshal (used by the profile loader) behaves the same as yaml.Load.
+	content := `allowed_vote_cmds: []`
+	var cfg ServerConfig
+	require.NoError(t, yaml.Unmarshal([]byte(content), &cfg))
+	t.Logf("AllowedVoteCmds: %v", cfg.AllowedVoteCmds)
+	require.NotNil(t, cfg.AllowedVoteCmds, "empty array must yield non-nil pointer via yaml.Unmarshal")
+	assert.Empty(t, *cfg.AllowedVoteCmds)
+}
 
 func TestNewDefaultServerConfig(t *testing.T) {
 	cfg := NewDefaultServerConfig()

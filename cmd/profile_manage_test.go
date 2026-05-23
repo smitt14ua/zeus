@@ -164,6 +164,54 @@ func TestExecProfileInfo_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "ghost")
 }
 
+func TestExecProfileInfo_TOML_AllowedVoteCmdsEmpty(t *testing.T) {
+	home := setTestHome(t)
+
+	emptyVote := []arma.VoteCommand{}
+	p := profile.Profile{
+		Name:       "vote-toml",
+		InstallDir: t.TempDir(),
+		Config:     arma.ServerConfig{AllowedVoteCmds: &emptyVote},
+	}
+	saveProfile(t, home, p)
+
+	var buf bytes.Buffer
+	require.NoError(t, execProfileInfo(context.Background(), "vote-toml", "toml", &buf))
+	out := buf.String()
+	t.Logf("TOML output: %s", out)
+	assert.Contains(t, out, "allowed_vote_cmds", "empty AllowedVoteCmds must appear in TOML output")
+}
+
+func TestExecProfileInfo_JSON_AllowedVoteCmdsNilVsEmpty(t *testing.T) {
+	home := setTestHome(t)
+
+	emptyVote := []arma.VoteCommand{}
+	emptyAdmin := []arma.VotedAdminCommand{}
+	p := profile.Profile{
+		Name:       "vote-test",
+		InstallDir: t.TempDir(),
+		Config: arma.ServerConfig{
+			AllowedVoteCmds:       &emptyVote,
+			AllowedVotedAdminCmds: &emptyAdmin,
+		},
+	}
+	saveProfile(t, home, p)
+
+	var buf bytes.Buffer
+	require.NoError(t, execProfileInfo(context.Background(), "vote-test", "json", &buf))
+
+	out := buf.String()
+	t.Logf("JSON output: %s", out)
+
+	var got profile.Profile
+	require.NoError(t, json.Unmarshal([]byte(strings.TrimSpace(out)), &got))
+
+	require.NotNil(t, got.Config.AllowedVoteCmds, "empty allowedVoteCmds must be present in JSON, not omitted")
+	assert.Empty(t, *got.Config.AllowedVoteCmds)
+	require.NotNil(t, got.Config.AllowedVotedAdminCmds, "empty allowedVotedAdminCmds must be present in JSON, not omitted")
+	assert.Empty(t, *got.Config.AllowedVotedAdminCmds)
+}
+
 // ── execProfileRm ─────────────────────────────────────────────────────────────
 
 func TestExecProfileRm_NotFound(t *testing.T) {

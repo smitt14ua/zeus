@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -467,4 +468,51 @@ secret_access_key = "minioadmin"
 	assert.Equal(t, "us-east-1", p.MissionSource.Region)
 	assert.Equal(t, "minioadmin", p.MissionSource.AccessKeyID)
 	assert.Equal(t, "minioadmin", p.MissionSource.SecretAccessKey)
+}
+
+// TestProfileLoader_AllowedVoteCmds_NilVsEmpty verifies that an absent key and an
+// explicit empty array are kept distinct through every load/marshal path.
+func TestProfileLoader_AllowedVoteCmds_NilVsEmpty(t *testing.T) {
+	loader := ProfileLoader{}
+
+	t.Run("yaml_absent_gives_nil", func(t *testing.T) {
+		p, err := loader.FromBytesFormat([]byte("name: srv\ninstall_dir: /opt\n"), "yaml")
+		require.NoError(t, err)
+		assert.Nil(t, p.Config.AllowedVoteCmds)
+		assert.Nil(t, p.Config.AllowedVotedAdminCmds)
+	})
+
+	t.Run("yaml_empty_gives_non_nil", func(t *testing.T) {
+		yaml := "name: srv\ninstall_dir: /opt\nconfig:\n  allowed_vote_cmds: []\n  allowed_voted_admin_cmds: []\n"
+		p, err := loader.FromBytesFormat([]byte(yaml), "yaml")
+		require.NoError(t, err)
+		require.NotNil(t, p.Config.AllowedVoteCmds, "empty allowed_vote_cmds must yield non-nil pointer")
+		assert.Empty(t, *p.Config.AllowedVoteCmds)
+		require.NotNil(t, p.Config.AllowedVotedAdminCmds, "empty allowed_voted_admin_cmds must yield non-nil pointer")
+		assert.Empty(t, *p.Config.AllowedVotedAdminCmds)
+	})
+
+	t.Run("json_round_trip_preserves_empty", func(t *testing.T) {
+		emptyVote := []arma.VoteCommand{}
+		emptyAdmin := []arma.VotedAdminCommand{}
+		p := Profile{
+			Name:       "srv",
+			InstallDir: "/opt",
+			Config: arma.ServerConfig{
+				AllowedVoteCmds:       &emptyVote,
+				AllowedVotedAdminCmds: &emptyAdmin,
+			},
+		}
+		data, err := json.Marshal(p)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), `"allowedVoteCmds":[]`, "empty slice must appear in JSON, not be omitted")
+		assert.Contains(t, string(data), `"allowedVotedAdminCmds":[]`)
+
+		got, err := loader.FromBytes(data)
+		require.NoError(t, err)
+		require.NotNil(t, got.Config.AllowedVoteCmds, "empty allowedVoteCmds must survive JSON round-trip")
+		assert.Empty(t, *got.Config.AllowedVoteCmds)
+		require.NotNil(t, got.Config.AllowedVotedAdminCmds)
+		assert.Empty(t, *got.Config.AllowedVotedAdminCmds)
+	})
 }
