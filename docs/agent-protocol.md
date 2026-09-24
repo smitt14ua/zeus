@@ -30,6 +30,7 @@ send commands and receive real-time output and status updates.
    - [profile.rm](#profilerm)
    - [missions.pull](#missionspull)
    - [update](#update)
+   - [system.reboot](#systemreboot)
 8. [Scope System](#scope-system)
 9. [State Snapshot on Connect](#state-snapshot-on-connect)
 10. [Sequence Diagrams](#sequence-diagrams)
@@ -197,7 +198,7 @@ The agent also reconnects after a successful self-update — see [`update`](#upd
 |-------|------|-------------|
 | `agent` | string | Agent name (same as the `?name=` URL parameter). |
 | `zeus_version` | string | Zeus CLI version running on the agent machine. |
-| `allowed_scopes` | string[] | Optional. Which command scopes this agent accepts. Absent or empty = all commands allowed. See [Scope System](#scope-system). |
+| `allowed_scopes` | string[] | Optional. Which command scopes this agent accepts. Absent or empty = all scopes except opt-in ones (`system`). See [Scope System](#scope-system). |
 
 ---
 
@@ -511,6 +512,53 @@ When an update is applied the agent: sends all stream lines, sends `result` with
 
 ---
 
+### `system.reboot`
+
+Reboot the host machine the agent is running on. **Agent-only** — there is no
+equivalent `zeus` CLI command.
+
+**Args:** none
+
+**Scope:** `system` — **opt-in**. Not granted by default or by `all`; the agent
+must be started with `--allow` naming `system` explicitly (e.g. `--allow all,system`).
+
+The agent schedules the reboot with the OS `shutdown` utility rather than
+rebooting immediately, so the `result` reaches the panel before the machine goes down:
+
+| Platform | Command | Delay |
+|----------|---------|-------|
+| Windows | `shutdown /r /t 5 /c "..."` | 5 seconds |
+| Linux / macOS / BSD | `shutdown -r +1 "..."` | 1 minute (`shutdown` accepts whole minutes only) |
+
+**Stream output:**
+```
+Scheduling reboot: shutdown -r +1 "zeus agent: reboot requested by panel"
+Reboot scheduled.
+```
+
+| Condition | Result | After result |
+|-----------|--------|--------------|
+| Reboot scheduled | `success: true` | Host reboots after the delay; agent disconnects |
+| Insufficient privileges / `shutdown` missing | `success: false`; `error` contains the exit status plus `shutdown`'s output (also streamed) | Nothing — agent keeps running |
+
+**Running Arma servers are not stopped gracefully.** On Windows any `/t` delay
+implies `/f`, so running applications are force-closed; on Linux/macOS they
+receive the normal shutdown `SIGTERM`. Stop profiles with `profile.stop` first
+if a clean shutdown matters.
+
+On Linux/macOS the agent process needs permission to run `shutdown` (root, or a
+sudoers/polkit rule). On Windows the account needs the *Shut down the system* privilege.
+A scheduled reboot can be cancelled on the host with `shutdown /a` (Windows),
+`shutdown -c` (Linux), or by killing the pending `shutdown` process (macOS/BSD: `sudo killall shutdown`).
+
+On Windows, `shutdown.exe` writes its messages in the console OEM code page;
+on non-English locales, non-ASCII characters in stream/error text may be garbled.
+
+The agent does not restart itself after the reboot. Run it as a service
+(systemd unit, Windows service / scheduled task) if it should reconnect automatically.
+
+---
+
 ## Scope System
 
 The agent operator can restrict which commands the agent accepts using the
@@ -525,7 +573,8 @@ panel.
 | `control` | `profile.start`, `profile.stop` |
 | `manage` | `profile.new`, `profile.add`, `profile.rm`, `missions.pull` |
 | `update` | `update` |
-| `all` | All commands (default when `--allow` is omitted) |
+| `system` | `system.reboot` — **opt-in**: not included in `all` or the default, must be named explicitly |
+| `all` | All scopes except opt-in ones (default when `--allow` is omitted) |
 
 ### Combining Scopes
 
@@ -538,8 +587,11 @@ zeus agent --url wss://panel.example.com/ws/agent --token abc123 --allow view
 # Operations panel — can start/stop and view, but cannot create/delete profiles
 zeus agent --url wss://panel.example.com/ws/agent --token abc123 --allow view,control
 
-# Full access (same as default)
+# Everything except opt-in scopes (same as default)
 zeus agent --url wss://panel.example.com/ws/agent --token abc123 --allow all
+
+# Full access including host reboot
+zeus agent --url wss://panel.example.com/ws/agent --token abc123 --allow all,system
 ```
 
 ### How the Server Should Use `allowed_scopes`
@@ -553,7 +605,9 @@ Your server should:
    responsibility. The agent will return a `result` with `success: false` and a
    descriptive error if a disallowed command is sent.
 
-If `allowed_scopes` is absent or an empty array, all commands are permitted.
+If `allowed_scopes` is absent or an empty array, all commands are permitted except
+those in opt-in scopes (`system`). Treat `system.reboot` as available only when
+`allowed_scopes` explicitly contains `"system"`.
 
 ---
 
@@ -693,6 +747,8 @@ sequenceDiagram
 | Server disconnect | Agent waits reconnect delay (default 5 s) then reconnects |
 | `update` — new version applied | Returns `result` with `success: true`, then spawns updated binary and exits |
 | `update` — already up to date | Returns `result` with `success: true`, agent keeps running |
+| `system.reboot` — reboot scheduled | Returns `result` with `success: true`; the host reboots shortly after and the agent disconnects |
+| `system.reboot` — insufficient privileges | Returns `result` with `success: false`; `error` includes the exit status and `shutdown` output; nothing is scheduled |
 
 ---
 
@@ -1257,7 +1313,8 @@ func envOr(key, def string) string {
   primitive or array). Decode `env.payload` into a typed struct or a
   `map[string]any`.
 - `allowed_scopes` being absent in JSON is identical to `[]` — both mean
-  "allow all". Check with `len(scopes) == 0` rather than a nil check.
+  "allow all except opt-in scopes (`system`)". Check with `len(scopes) == 0`
+  rather than a nil check.
 - Command IDs are generated by the **server** (or browser), not the agent.
   Use UUID v4.
 - The `sources` map is **not** bounded. Clean up entries after receiving a

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-24
+
+### Added
+
+- **`system.reboot` agent command** — agent-only command that reboots the host machine the agent runs on. The reboot is scheduled via the OS `shutdown` utility (5 s delay on Windows, 1 min on Linux/macOS) so the result reaches the panel first; privilege errors are reported as a failed result including `shutdown`'s output. Gated behind the new **opt-in** `system` scope: it is not granted by default or by `--allow all`, and must be named explicitly (e.g. `--allow all,system`), so existing agents do not silently gain the ability to reboot their host. Running Arma servers are not stopped gracefully (Windows force-closes applications). See `docs/agent-protocol.md`.
+
+### Changed
+
+- **`--allow all` / omitted `--allow` no longer means "every command"** — it now means every scope except opt-in scopes (currently only `system`). Panels should treat `system.reboot` as available only when `allowed_scopes` explicitly contains `"system"`.
+
 ## [0.6.4] - 2026-05-23
 
 ### Fixed
@@ -239,7 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/smitt14ua/zeus/compare/v0.6.4...v0.7.0
 [0.5.0]: https://github.com/smitt14ua/zeus/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/smitt14ua/zeus/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/smitt14ua/zeus/compare/v0.3.2...v0.4.0

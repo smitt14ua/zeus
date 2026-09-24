@@ -67,3 +67,11 @@ func BoolArg(args map[string]any, key string) bool {
 	v, _ := args[key].(bool)
 	return v
 }
+
+// Has reports whether a handler is registered for cmd.
+func (e *Executor) Has(cmd string) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	_, ok := e.handlers[cmd]
+	return ok
+}

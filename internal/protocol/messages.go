@@ -3,7 +3,10 @@
 // It has no internal dependencies and can be extracted into its own module.
 package protocol
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"slices"
+)
 
 // Message types (Envelope.Type).
 const (
@@ -28,6 +31,7 @@ const (
 	CmdProfileRm    = "profile.rm"
 	CmdMissionsPull = "missions.pull"
 	CmdUpdate       = "update"
+	CmdSystemReboot = "system.reboot"
 )
 
 // Event names (Event.Event).
@@ -49,7 +53,8 @@ const (
 	ScopeControl = "control" // profile.start, profile.stop
 	ScopeManage  = "manage"  // profile.new, profile.add, profile.rm, missions.pull, profile.info (write operations)
 	ScopeUpdate  = "update"  // update
-	ScopeAll     = "all"     // no restrictions (default)
+	ScopeSystem  = "system"  // system.reboot (host machine operations)
+	ScopeAll     = "all"     // every scope except OptInScopes (default)
 )
 
 // scopeCommands maps each scope to the commands it covers.
@@ -58,26 +63,26 @@ var scopeCommands = map[string][]string{
 	ScopeControl: {CmdProfileStart, CmdProfileStop},
 	ScopeManage:  {CmdProfileNew, CmdProfileAdd, CmdProfileRm, CmdMissionsPull},
 	ScopeUpdate:  {CmdUpdate},
+	ScopeSystem:  {CmdSystemReboot},
 }
 
 // AllScopes is the ordered list of all named scopes (excluding "all").
-var AllScopes = []string{ScopeView, ScopeControl, ScopeManage, ScopeUpdate}
+var AllScopes = []string{ScopeView, ScopeControl, ScopeManage, ScopeUpdate, ScopeSystem}
 
-// ResolveScopes returns a set of allowed command names for the given scope list.
-// Returns nil (allow everything) if scopes is empty or contains ScopeAll.
+// OptInScopes are never granted implicitly: an empty scope list and ScopeAll
+// exclude them, so they must be named explicitly (e.g. --allow all,system).
+var OptInScopes = map[string]bool{ScopeSystem: true}
+
+// ResolveScopes returns the set of allowed command names for the given scope list.
+// An empty list or one containing ScopeAll grants every scope except OptInScopes.
 func ResolveScopes(scopes []string) map[string]bool {
-	if len(scopes) == 0 {
-		return nil
-	}
-	for _, s := range scopes {
-		if s == ScopeAll {
-			return nil
-		}
-	}
+	all := len(scopes) == 0 || slices.Contains(scopes, ScopeAll)
 	allowed := make(map[string]bool)
-	for _, s := range scopes {
-		for _, cmd := range scopeCommands[s] {
-			allowed[cmd] = true
+	for scope, cmds := range scopeCommands {
+		if (all && !OptInScopes[scope]) || slices.Contains(scopes, scope) {
+			for _, cmd := range cmds {
+				allowed[cmd] = true
+			}
 		}
 	}
 	return allowed
@@ -115,7 +120,7 @@ type Result struct {
 type Hello struct {
 	Agent         string   `json:"agent"`
 	ZeusVersion   string   `json:"zeus_version"`
-	AllowedScopes []string `json:"allowed_scopes,omitempty"` // nil/absent = all commands allowed
+	AllowedScopes []string `json:"allowed_scopes,omitempty"` // nil/absent = all scopes except OptInScopes
 }
 
 // Heartbeat is the payload for TypeHeartbeat messages (agent → server, periodic).
@@ -123,7 +128,7 @@ type Heartbeat struct {
 	Agent         string          `json:"agent"`
 	ZeusVersion   string          `json:"zeus_version"`
 	Profiles      []ProfileStatus `json:"profiles"`
-	AllowedScopes []string        `json:"allowed_scopes,omitempty"` // nil/absent = all commands allowed
+	AllowedScopes []string        `json:"allowed_scopes,omitempty"` // nil/absent = all scopes except OptInScopes
 }
 
 // ProfileStatus is the per-profile snapshot inside Heartbeat.

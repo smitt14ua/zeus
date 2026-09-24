@@ -54,27 +54,43 @@ func TestEncode_MarshalError(t *testing.T) {
 	}
 }
 
-func TestResolveScopes_Nil_AllowsAll(t *testing.T) {
-	if ResolveScopes(nil) != nil {
-		t.Error("nil scopes should return nil (allow all)")
+// assertAllButOptIn checks that allowed grants every command of every
+// non-opt-in scope and nothing from opt-in scopes.
+func assertAllButOptIn(t *testing.T, allowed map[string]bool) {
+	t.Helper()
+	for scope, cmds := range scopeCommands {
+		for _, cmd := range cmds {
+			if want := !OptInScopes[scope]; allowed[cmd] != want {
+				t.Errorf("%s (scope %s): allowed = %v, want %v", cmd, scope, allowed[cmd], want)
+			}
+		}
 	}
 }
 
-func TestResolveScopes_Empty_AllowsAll(t *testing.T) {
-	if ResolveScopes([]string{}) != nil {
-		t.Error("empty scopes should return nil (allow all)")
-	}
+func TestResolveScopes_Nil_AllowsAllButOptIn(t *testing.T) {
+	assertAllButOptIn(t, ResolveScopes(nil))
 }
 
-func TestResolveScopes_ScopeAll_AllowsAll(t *testing.T) {
-	if ResolveScopes([]string{ScopeAll}) != nil {
-		t.Error("ScopeAll should return nil (allow all)")
-	}
+func TestResolveScopes_Empty_AllowsAllButOptIn(t *testing.T) {
+	assertAllButOptIn(t, ResolveScopes([]string{}))
 }
 
-func TestResolveScopes_AllInMixed_AllowsAll(t *testing.T) {
-	if ResolveScopes([]string{ScopeView, ScopeAll}) != nil {
-		t.Error("presence of ScopeAll should return nil regardless of other scopes")
+func TestResolveScopes_ScopeAll_AllowsAllButOptIn(t *testing.T) {
+	assertAllButOptIn(t, ResolveScopes([]string{ScopeAll}))
+}
+
+func TestResolveScopes_AllInMixed_AllowsAllButOptIn(t *testing.T) {
+	assertAllButOptIn(t, ResolveScopes([]string{ScopeView, ScopeAll}))
+}
+
+func TestResolveScopes_AllPlusSystem_AllowsEverything(t *testing.T) {
+	allowed := ResolveScopes([]string{ScopeAll, ScopeSystem})
+	for _, cmds := range scopeCommands {
+		for _, cmd := range cmds {
+			if !allowed[cmd] {
+				t.Errorf("%s should be allowed by all,system", cmd)
+			}
+		}
 	}
 }
 
@@ -156,5 +172,20 @@ func TestResolveScopes_UnknownScope_EmptyAllowed(t *testing.T) {
 	allowed := ResolveScopes([]string{"unknown"})
 	if len(allowed) != 0 {
 		t.Errorf("unknown scope should produce empty allowed set, got %v", allowed)
+	}
+}
+
+func TestResolveScopes_System(t *testing.T) {
+	allowed := ResolveScopes([]string{ScopeSystem})
+	if !allowed[CmdSystemReboot] {
+		t.Error("system.reboot should be allowed by system scope")
+	}
+	if allowed[CmdUpdate] {
+		t.Error("update should not be allowed by system scope")
+	}
+	for _, s := range []string{ScopeView, ScopeControl, ScopeManage, ScopeUpdate} {
+		if ResolveScopes([]string{s})[CmdSystemReboot] {
+			t.Errorf("system.reboot should not be allowed by %s scope", s)
+		}
 	}
 }

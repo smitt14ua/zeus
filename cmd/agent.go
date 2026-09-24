@@ -137,6 +137,11 @@ func buildExecutor() *agent.Executor {
 		return agent.ErrRestartRequested
 	})
 
+	// Agent-only: there is no CLI equivalent for rebooting the host machine.
+	exec.Register(protocol.CmdSystemReboot, func(ctx context.Context, args map[string]any, w io.Writer) error {
+		return agent.RebootMachine(ctx, w)
+	})
+
 	return exec
 }
 
@@ -148,10 +153,12 @@ func init() {
 	agentCmd.Flags().Duration("heartbeat", 1*time.Second, "heartbeat interval")
 	agentCmd.Flags().Duration("reconnect", 5*time.Second, "reconnect delay on disconnect")
 	agentCmd.Flags().String("allow", "", `comma-separated scopes this agent accepts (default: all)
-  Scopes: view, control, manage, update, all
+  Scopes: view, control, manage, update, system, all
     view    — profile.list, profile.info
     control — profile.start, profile.stop
     manage  — profile.new, profile.add, profile.rm, missions.pull
     update  — update
-  Example: --allow view,control`)
+    system  — system.reboot (reboots the host machine; opt-in, not included in "all")
+  Example: --allow view,control
+  Example: --allow all,system`)
 }
