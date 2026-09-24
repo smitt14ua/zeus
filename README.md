@@ -130,7 +130,7 @@ zeus agent --url wss://panel.example.com/ws/agent --token my-secret --allow view
 | `--name` | Agent name shown in the panel (default: hostname) |
 | `--heartbeat` | Heartbeat interval (default `1s`) |
 | `--reconnect` | Reconnect delay after disconnect (default `5s`) |
-| `--allow` | Comma-separated scope allowlist: `view`, `control`, `manage`, `update`, `system`, `all` (default: all). **Note:** `all`/default currently includes `system` (host reboot); it will become opt-in again in a future release. Use an explicit list such as `--allow view,control,manage,update` to exclude it now |
+| `--allow` | Comma-separated scope allowlist: `view`, `control`, `manage`, `update`, `system`, `all` (default: all). `system` (host reboot) is opt-in: not covered by `all`, must be named explicitly, e.g. `--allow all,system` |
 
 The agent reconnects automatically on disconnect. See [`docs/agent-protocol.md`](docs/agent-protocol.md) for the full protocol specification and server implementation guide.
 

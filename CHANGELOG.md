@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-09-24
+
+### Changed
+
+- **`system` scope is opt-in again** — reverts the temporary v0.7.1 default. `--allow all` and an omitted `--allow` no longer grant `system` (`system.reboot`); name it explicitly to enable host reboot, e.g. `--allow all,system`. Behaviour matches v0.7.0.
+
 ## [0.7.1] - 2026-09-24
 
 ### Changed
@@ -255,7 +261,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/smitt14ua/zeus/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/smitt14ua/zeus/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/smitt14ua/zeus/compare/v0.6.4...v0.7.0
 [0.5.0]: https://github.com/smitt14ua/zeus/compare/v0.4.1...v0.5.0
