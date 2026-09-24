@@ -158,7 +158,7 @@ func init() {
     control — profile.start, profile.stop
     manage  — profile.new, profile.add, profile.rm, missions.pull
     update  — update
-    system  — system.reboot (reboots the host machine; opt-in, not included in "all")
+    system  — system.reboot (reboots the host machine; included in "all" for now)
   Example: --allow view,control
   Example: --allow all,system`)
 }

@@ -54,7 +54,7 @@ const (
 	ScopeManage  = "manage"  // profile.new, profile.add, profile.rm, missions.pull, profile.info (write operations)
 	ScopeUpdate  = "update"  // update
 	ScopeSystem  = "system"  // system.reboot (host machine operations)
-	ScopeAll     = "all"     // every scope except OptInScopes (default)
+	ScopeAll     = "all"     // every scope except OptInScopes (default; currently includes system)
 )
 
 // scopeCommands maps each scope to the commands it covers.
@@ -71,7 +71,10 @@ var AllScopes = []string{ScopeView, ScopeControl, ScopeManage, ScopeUpdate, Scop
 
 // OptInScopes are never granted implicitly: an empty scope list and ScopeAll
 // exclude them, so they must be named explicitly (e.g. --allow all,system).
-var OptInScopes = map[string]bool{ScopeSystem: true}
+//
+// TEMPORARY (v0.7.1): empty, so ScopeSystem is granted by default and by
+// ScopeAll. Restore {ScopeSystem: true} in the next release.
+var OptInScopes = map[string]bool{}
 
 // ResolveScopes returns the set of allowed command names for the given scope list.
 // An empty list or one containing ScopeAll grants every scope except OptInScopes.

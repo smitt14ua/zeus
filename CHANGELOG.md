@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-24
+
+### Changed
+
+- **`system` scope temporarily included by default** — for this release only, `--allow all` and an omitted `--allow` also grant the `system` scope (`system.reboot`), so agents can be rebooted from the panel without reconfiguring `--allow`. `system` is expected to become opt-in again (requiring e.g. `--allow all,system`) in a future release. To exclude it now, pass an explicit list such as `--allow view,control,manage,update`.
+
 ## [0.7.0] - 2026-09-24
 
 ### Added
@@ -249,7 +255,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RCon defaults: deterministic MD5 password per profile name, port = gamePort − 1
 - TOML custom scalar types (`DataSize`, `DataTransferRate`, `Time`) accepting both integer and string forms
 
-[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/smitt14ua/zeus/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/smitt14ua/zeus/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/smitt14ua/zeus/compare/v0.6.4...v0.7.0
 [0.5.0]: https://github.com/smitt14ua/zeus/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/smitt14ua/zeus/compare/v0.4.0...v0.4.1

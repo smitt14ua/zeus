@@ -189,3 +189,13 @@ func TestResolveScopes_System(t *testing.T) {
 		}
 	}
 }
+
+// TEMPORARY (v0.7.1): system is granted by default. Remove when ScopeSystem
+// is moved back into OptInScopes.
+func TestResolveScopes_Default_IncludesSystem(t *testing.T) {
+	for _, scopes := range [][]string{nil, {ScopeAll}} {
+		if !ResolveScopes(scopes)[CmdSystemReboot] {
+			t.Errorf("ResolveScopes(%v): system.reboot should be allowed", scopes)
+		}
+	}
+}
